@@ -8,20 +8,26 @@ import (
 
 	"github.com/cucumber/godog"
 )
-type rayKey struct {Name string}
+
+type rayKey struct{ Name string }
+
 func InitializeRaysScenario(sc *godog.ScenarioContext) {
 
 	sc.Given(
 		`^(\w+) ← ray\(point\((\S+), (\S+), (\S+)\), vector\((\S+), (\S+), (\S+)\)\)$`,
 		func(ctx context.Context, name string, x1, y1, z1, x2, y2, z2 string) (context.Context, error) {
 			point, err := pointFromStrings(x1, y1, z1)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			vector, err := vectorFromStrings(x2, y2, z2)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			return setRay(ctx, name, rt.NewRay(point, vector)), nil
 		})
 
-	sc.When (
+	sc.When(
 		`^(\w+) ← ray\((\w+), (\w+)\)$`,
 		func(ctx context.Context, name string, origin, direction string) (context.Context, error) {
 			point, ok := ctx.Value(tupleKey{origin}).(*rt.Tuple)
@@ -59,7 +65,7 @@ func InitializeRaysScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return fmt.Errorf("no ray named %s found", name)
 			}
-			point := rt.NewPoint(x,y,z)
+			point := rt.NewPoint(x, y, z)
 			if !ray.Origin.Equal(point) {
 				return fmt.Errorf("expected %s, got %s", point, ray.Origin)
 			}
@@ -69,7 +75,7 @@ func InitializeRaysScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+).direction = (\w+)$`,
 		func(ctx context.Context, name, direction string) error {
-			
+
 			vector, ok := ctx.Value(tupleKey{direction}).(*rt.Tuple)
 			if !ok {
 				return fmt.Errorf("no tuple named %s found", direction)
@@ -90,7 +96,7 @@ func InitializeRaysScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return fmt.Errorf("no ray named %s found", name)
 			}
-			vector := rt.NewVector(x,y,z)
+			vector := rt.NewVector(x, y, z)
 			if !ray.Direction.Equal(vector) {
 				return fmt.Errorf("expected %s, got %s", vector, ray.Direction)
 			}
@@ -104,7 +110,7 @@ func InitializeRaysScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return fmt.Errorf("no ray named %s found", name)
 			}
-			point := rt.NewPoint(x,y,z)
+			point := rt.NewPoint(x, y, z)
 			position := ray.Position(t)
 			if !position.Equal(point) {
 				return fmt.Errorf("expected %s, got %s", point, position)

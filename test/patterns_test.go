@@ -10,59 +10,71 @@ import (
 )
 
 type TestPattern struct {
-
 }
 
-
-func (t TestPattern) ColorAt (pt *rt.Tuple, a, b *rt.Color) *rt.Color {
+func (t TestPattern) ColorAt(pt *rt.Tuple, a, b *rt.Color) *rt.Color {
 	return rt.NewColor(pt.X, pt.Y, pt.Z)
 }
 
 func newTestPattern() *rt.Pattern {
-	return rt.NewPattern(rt.NewColor(0,0,0), rt.NewColor(1,1,1), TestPattern{})
+	return rt.NewPattern(rt.NewColor(0, 0, 0), rt.NewColor(1, 1, 1), TestPattern{})
 }
 
-func getTransform (s string) func(x,y,z float64)*rt.Matrix {
+func getTransform(s string) func(x, y, z float64) *rt.Matrix {
 	switch s {
-	case "scaling": 	return rt.Scaling
-	case "translation": return rt.Translation
+	case "scaling":
+		return rt.Scaling
+	case "translation":
+		return rt.Translation
 	}
 
-	return func (x,y,z float64)*rt.Matrix{return rt.IdentityMatrix()}
+	return func(x, y, z float64) *rt.Matrix { return rt.IdentityMatrix() }
 }
 
-func setPatternTransform (ctx context.Context, target, transform string, x, y, z float64) (context.Context, error) {
+func setPatternTransform(ctx context.Context, target, transform string, x, y, z float64) (context.Context, error) {
 	pattern, err := getPattern(ctx, target)
-	if err != nil {return ctx, err}
+	if err != nil {
+		return ctx, err
+	}
 
-	t := getTransform(transform)(x,y,z)
+	t := getTransform(transform)(x, y, z)
 	pattern.Transform = t
 
 	return ctx, nil
 }
 
-func patternAtShape (ctx context.Context, dest, patternName, objectName string, x, y, z float64) (context.Context, error) {
+func patternAtShape(ctx context.Context, dest, patternName, objectName string, x, y, z float64) (context.Context, error) {
 	pattern, err := getPattern(ctx, patternName)
-	if err != nil {return ctx, err}
+	if err != nil {
+		return ctx, err
+	}
 
 	shape, err := getShape(ctx, objectName)
-	if err != nil {return ctx, err}
+	if err != nil {
+		return ctx, err
+	}
 
-	pt := rt.NewPoint(x,y,z)
+	pt := rt.NewPoint(x, y, z)
 	color, err := pattern.ColorAtObject(shape, pt)
-	if err != nil {return ctx, err}
+	if err != nil {
+		return ctx, err
+	}
 
 	return setColor(ctx, dest, color), nil
 }
 
 func patternAtPoint(ctx context.Context, dest string, x, y, z float64, colorName string) error {
 	pattern, err := getPattern(ctx, dest)
-	if err != nil {return err}
-	expect, err := getColor (ctx, colorName)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
+	expect, err := getColor(ctx, colorName)
+	if err != nil {
+		return err
+	}
 
-	p := rt.NewPoint(x,y,z)
-	color := pattern.ColorAt (p)
+	p := rt.NewPoint(x, y, z)
+	color := pattern.ColorAt(p)
 
 	if !expect.Equal(color) {
 		return fmt.Errorf("expected %s, got %s", expect, color)
@@ -73,47 +85,63 @@ func patternAtPoint(ctx context.Context, dest string, x, y, z float64, colorName
 func InitializePatternsScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← stripe_pattern\((\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
+		func(ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
 			c1, err := getColor(ctx, firstColor)
-			if err != nil {return ctx, err}
-			c2, err := getColor (ctx, secondColor)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
+			c2, err := getColor(ctx, secondColor)
+			if err != nil {
+				return ctx, err
+			}
 
-			return setPattern (ctx, dest, rt.NewStripePattern(c1,c2)), nil
+			return setPattern(ctx, dest, rt.NewStripePattern(c1, c2)), nil
 		})
 	sc.Given(
 		`^(\w+) ← gradient_pattern\((\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
+		func(ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
 			c1, err := getColor(ctx, firstColor)
-			if err != nil {return ctx, err}
-			c2, err := getColor (ctx, secondColor)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
+			c2, err := getColor(ctx, secondColor)
+			if err != nil {
+				return ctx, err
+			}
 
-			return setPattern (ctx, dest, rt.NewGradientPattern(c1,c2)), nil
-		})	
+			return setPattern(ctx, dest, rt.NewGradientPattern(c1, c2)), nil
+		})
 	sc.Given(
 		`^(\w+) ← ring_pattern\((\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
+		func(ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
 			c1, err := getColor(ctx, firstColor)
-			if err != nil {return ctx, err}
-			c2, err := getColor (ctx, secondColor)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
+			c2, err := getColor(ctx, secondColor)
+			if err != nil {
+				return ctx, err
+			}
 
-			return setPattern (ctx, dest, rt.NewRingPattern(c1,c2)), nil
+			return setPattern(ctx, dest, rt.NewRingPattern(c1, c2)), nil
 		})
 	sc.Given(
 		`^(\w+) ← checkers_pattern\((\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
+		func(ctx context.Context, dest, firstColor, secondColor string) (context.Context, error) {
 			c1, err := getColor(ctx, firstColor)
-			if err != nil {return ctx, err}
-			c2, err := getColor (ctx, secondColor)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
+			c2, err := getColor(ctx, secondColor)
+			if err != nil {
+				return ctx, err
+			}
 
-			return setPattern (ctx, dest, rt.NewCheckersPattern(c1,c2)), nil
+			return setPattern(ctx, dest, rt.NewCheckersPattern(c1, c2)), nil
 		})
 	sc.Given(
 		`^(\w+) ← test_pattern\(\)$`,
-		func (ctx context.Context, dest string) context.Context {
+		func(ctx context.Context, dest string) context.Context {
 			return setPattern(ctx, dest, newTestPattern())
 		})
 
@@ -134,9 +162,11 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 
 	sc.Then(
 		`(\w+).transform = identity_matrix$`,
-		func (ctx context.Context, dest string) error {
-			pattern, err := getPattern (ctx, dest)
-			if err != nil {return err}
+		func(ctx context.Context, dest string) error {
+			pattern, err := getPattern(ctx, dest)
+			if err != nil {
+				return err
+			}
 
 			expect := rt.IdentityMatrix()
 			if !pattern.Transform.Equal(expect) {
@@ -144,14 +174,18 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 			}
 			return nil
 		})
-    sc.Then(
+	sc.Then(
 		`(\w+).a = (\w+)$`,
-		func (ctx context.Context, dest, colorName string) error {
-			pattern, err := getPattern (ctx, dest)
-			if err != nil {return err}
+		func(ctx context.Context, dest, colorName string) error {
+			pattern, err := getPattern(ctx, dest)
+			if err != nil {
+				return err
+			}
 
-			color, err := getColor (ctx, colorName)
-			if err != nil {return err}
+			color, err := getColor(ctx, colorName)
+			if err != nil {
+				return err
+			}
 
 			if !pattern.A.Equal(color) {
 				return fmt.Errorf("expected %s, got %s", color, pattern.A)
@@ -159,14 +193,18 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 			return nil
 		})
 
-    sc.Then(
+	sc.Then(
 		`(\w+).b = (\w+)$`,
-		func (ctx context.Context, dest, colorName string) error {
-			pattern, err := getPattern (ctx, dest)
-			if err != nil {return err}
+		func(ctx context.Context, dest, colorName string) error {
+			pattern, err := getPattern(ctx, dest)
+			if err != nil {
+				return err
+			}
 
-			color, err := getColor (ctx, colorName)
-			if err != nil {return err}
+			color, err := getColor(ctx, colorName)
+			if err != nil {
+				return err
+			}
 
 			if !pattern.B.Equal(color) {
 				return fmt.Errorf("expected %s, got %s", color, pattern.B)
@@ -183,14 +221,16 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 		patternAtPoint)
 	sc.Then(
 		`^pattern_at\((\w+), point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)\) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
-		func (ctx context.Context, dest string, x, y, z float64, r, g, b float64) error {
+		func(ctx context.Context, dest string, x, y, z float64, r, g, b float64) error {
 			pattern, err := getPattern(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
-			p := rt.NewPoint(x,y,z)
-			color := pattern.ColorAt (p)
+			p := rt.NewPoint(x, y, z)
+			color := pattern.ColorAt(p)
 
-			expect := rt.NewColor(r,g,b)
+			expect := rt.NewColor(r, g, b)
 
 			if !expect.Equal(color) {
 				return fmt.Errorf("expected %s, got %s", expect, color)
@@ -198,14 +238,18 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 			return nil
 		})
 
-	sc.Then (
+	sc.Then(
 		`^c = (\w+)$`,
-		func (ctx context.Context, colorName string) error {
+		func(ctx context.Context, colorName string) error {
 			color, err := getColor(ctx, "c")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			expect, err := getColor(ctx, colorName)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !expect.Equal(color) {
 				return fmt.Errorf("expected %s, got %s", expect, color)
@@ -214,11 +258,13 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^(\w\w+).transform = translation\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
-		func (ctx context.Context, dest string, x, y, z float64) error {
+		func(ctx context.Context, dest string, x, y, z float64) error {
 			pattern, err := getPattern(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
-			m := rt.Translation(x,y,z)
+			m := rt.Translation(x, y, z)
 
 			if !pattern.Transform.Equal(m) {
 				return fmt.Errorf("expected %s, got %s", m, pattern.Transform)

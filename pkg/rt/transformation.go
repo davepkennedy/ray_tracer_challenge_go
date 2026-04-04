@@ -51,21 +51,21 @@ func Shearing(xy float64, xz float64, yx float64, yz float64, zx float64, zy flo
 	s.Set(0, 2, xz)
 	s.Set(1, 0, yx)
 	s.Set(1, 2, yz)
-	s.Set(2, 0, zx);
-	s.Set(2, 1, zy);
+	s.Set(2, 0, zx)
+	s.Set(2, 1, zy)
 	return s
 }
 
-func ViewTransformation (from, to, up *Tuple) (*Matrix, error) {
+func ViewTransformation(from, to, up *Tuple) (*Matrix, error) {
 	forward := to.Subtract(from).Normalize()
 	left := forward.Cross(up.Normalize())
 	trueUp := left.Cross(forward)
 
 	orientation := NewMatrix(4, []float64{
-		left.X,		left.Y,		left.Z,		0,
-		trueUp.X, 	trueUp.Y,	trueUp.Z,	0,
-		-forward.X,	-forward.Y,	-forward.Z,	0,
-		0,			0,			0,			1,
+		left.X, left.Y, left.Z, 0,
+		trueUp.X, trueUp.Y, trueUp.Z, 0,
+		-forward.X, -forward.Y, -forward.Z, 0,
+		0, 0, 0, 1,
 	})
 	return orientation.MultiplyMatrix(Translation(-from.X, -from.Y, -from.Z))
 }

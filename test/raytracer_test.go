@@ -8,11 +8,11 @@ import (
 
 func TestFeatures(t *testing.T) {
 	suite := godog.TestSuite{
-		Name:                 "raytracer",
+		Name:                "raytracer",
 		ScenarioInitializer: InitializeScenario,
 		Options: &godog.Options{
-			Format: "pretty",
-			Paths:  []string{"features"},
+			Format:   "pretty",
+			Paths:    []string{"features"},
 			TestingT: t,
 
 			//ShowStepDefinitions: true,
@@ -41,4 +41,6 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	InitializeShapesScenario(ctx)
 	InitializePlaneScenario(ctx)
 	InitializePatternsScenario(ctx)
+	InitializeCubeScenario(ctx)
+	InitializeCylinderScenario(ctx)
 }

@@ -1,5 +1,5 @@
 package rt
 
 const (
-	EPSILON	= 0.0001
+	EPSILON = 0.0001
 )

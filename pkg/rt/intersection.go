@@ -2,6 +2,7 @@ package rt
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"sort"
 )
@@ -147,4 +148,19 @@ func (i *Intersection) PrepareComputations(r *Ray, xs *Intersections) (*Computat
 		}
 	}
 	return comps, nil
+}
+
+func (c *Computations) Schlick() float64 {
+	cos := c.Eye.Dot(c.Normal)
+	if c.N1 > c.N2 {
+		n := c.N1 / c.N2
+		sin2t := (n * n) * (1 - (cos * cos))
+		if sin2t > 1 {
+			return 1
+		}
+		cos_t := math.Sqrt(1 - sin2t)
+		cos = cos_t
+	}
+	r0 := math.Pow((c.N1-c.N2)/(c.N1+c.N2), 2)
+	return r0 + (1-r0)*math.Pow(1-cos, 5)
 }

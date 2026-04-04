@@ -3,19 +3,23 @@ package test
 import (
 	"context"
 	"fmt"
-	"raytracer/pkg/rt"
+	"math"
 	"regexp"
+
+	"raytracer/pkg/rt"
 
 	"github.com/cucumber/godog"
 )
 
-type intersectionKey struct{Name string}
-type intersectionsKey struct{Name string}
+type intersectionKey struct{ Name string }
+type intersectionsKey struct{ Name string }
 
 // 2:A, 2.75:B, 3.25:C, 4.75:B, 5.25:C, 6:A
 func parseIntersections(ctx context.Context, list string) (*rt.Intersections, error) {
 	re, err := regexp.Compile(`(-?√?\d\S*\d?):(\w+)`)
-	if err != nil {return nil, err}
+	if err != nil {
+		return nil, err
+	}
 
 	matches := re.FindAllStringSubmatch(list, -1)
 	if matches == nil {
@@ -25,26 +29,33 @@ func parseIntersections(ctx context.Context, list string) (*rt.Intersections, er
 	intersections := make([]*rt.Intersection, 0)
 	for _, match := range matches {
 		t, err := parseFloat(match[1])
-		if err != nil {return nil, err}
+		if err != nil {
+			return nil, err
+		}
 		shape, err := getShape(ctx, match[2])
-		if err != nil {return nil, err}
+		if err != nil {
+			return nil, err
+		}
 
 		intersection := rt.NewIntersection(t, shape)
 		intersections = append(intersections, intersection)
-	}	
+	}
 	return rt.NewIntersections(intersections...), nil
 }
-
 
 func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← intersection\((\S+), (\w+)\)$`,
-		func(ctx context.Context, dest string, ts , source string) (context.Context, error) {
+		func(ctx context.Context, dest string, ts, source string) (context.Context, error) {
 			shape, err := getShape(ctx, source)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			t, err := parseFloat(ts)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			return context.WithValue(ctx, intersectionKey{dest}, rt.NewIntersection(t, shape)), nil
 		})
 	sc.Given(
@@ -54,7 +65,7 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return ctx, fmt.Errorf("no intersection named %s found", name)
 			}
-			
+
 			intersections := rt.NewIntersections(intersection)
 
 			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
@@ -70,7 +81,7 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return ctx, fmt.Errorf("no intersection named %s found", name2)
 			}
-			
+
 			intersections := rt.NewIntersections(intersection1, intersection2)
 
 			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
@@ -94,17 +105,19 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return ctx, fmt.Errorf("no intersection named %s found", name4)
 			}
-			
+
 			intersections := rt.NewIntersections(intersection1, intersection2, intersection3, intersection4)
 
 			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
 		})
-		
+
 	sc.Given(
 		`^(\w+) ← intersections\((-?√?\d\S*\d?:.+)\)$`,
 		func(ctx context.Context, dest, list string) (context.Context, error) {
 			intersections, err := parseIntersections(ctx, list)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
 		})
 
@@ -112,7 +125,9 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		`^(\w) ← intersection\((-?\d+\.?\d*), (\w+)\)$`,
 		func(ctx context.Context, dest string, t float64, source string) (context.Context, error) {
 			shape, err := getShape(ctx, source)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			return context.WithValue(ctx, intersectionKey{dest}, rt.NewIntersection(t, shape)), nil
 		})
 	sc.When(
@@ -126,14 +141,14 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			if !ok {
 				return ctx, fmt.Errorf("no intersection named %s found", name2)
 			}
-			
+
 			intersections := rt.NewIntersections(intersection1, intersection2)
 
 			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
 		})
-	sc.When (
+	sc.When(
 		`(\w+) ← hit\((\w+)\)`,
-		func (ctx context.Context, dest, source string) (context.Context, error) {
+		func(ctx context.Context, dest, source string) (context.Context, error) {
 			intersections, ok := ctx.Value(intersectionsKey{source}).(*rt.Intersections)
 			if !ok {
 				return ctx, fmt.Errorf("no intersections named %s found", source)
@@ -143,46 +158,77 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.When(
 		`^(\w+) ← prepare_computations\((\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, intersectionName, rayName string) (context.Context, error) {
+		func(ctx context.Context, dest, intersectionName, rayName string) (context.Context, error) {
 			intersection, err := getIntersection(ctx, intersectionName)
-			if err != nil {return ctx, nil}
+			if err != nil {
+				return ctx, nil
+			}
 			ray, err := getRay(ctx, rayName)
-			if err != nil {return ctx, nil}
+			if err != nil {
+				return ctx, nil
+			}
 
 			comps, err := intersection.PrepareComputations(ray, nil)
-			if err != nil {return ctx, nil}
+			if err != nil {
+				return ctx, nil
+			}
 
-			return setComps (ctx, dest, comps), nil
+			return setComps(ctx, dest, comps), nil
 		})
 	sc.When(
 		`^(\w+) ← prepare_computations\((\w+)\[(\d+)\], (\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, intersectionsName string, idx int, rayName, _ string) (context.Context, error) {
+		func(ctx context.Context, dest, intersectionsName string, idx int, rayName, _ string) (context.Context, error) {
 			intersections, err := getIntersections(ctx, intersectionsName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			intersection := intersections.At(idx)
 			ray, err := getRay(ctx, rayName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			comps, err := intersection.PrepareComputations(ray, intersections)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			return setComps(ctx, dest, comps), nil
 		})
 	sc.When(
 		`^(\w+) ← prepare_computations\((\w+), (\w+), (\w+)\)$`,
-		func (ctx context.Context, dest, intersectionName, rayName, intersectionsName string) (context.Context, error) {
+		func(ctx context.Context, dest, intersectionName, rayName, intersectionsName string) (context.Context, error) {
 			intersection, err := getIntersection(ctx, intersectionName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			ray, err := getRay(ctx, rayName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 			intersections, err := getIntersections(ctx, intersectionsName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			comps, err := intersection.PrepareComputations(ray, intersections)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			return setComps(ctx, dest, comps), nil
+		})
+	sc.When(
+		`^reflectance ← schlick\(comps\)$`,
+		func(ctx context.Context) (context.Context, error) {
+			comps, err := getComps(ctx, "comps")
+			if err != nil {
+				return ctx, err
+			}
+
+			reflectance := comps.Schlick()
+			return setFloat(ctx, "reflectance", reflectance), nil
 		})
 
 	sc.Then(
@@ -205,7 +251,9 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 				return fmt.Errorf("no intersection named %s found", name)
 			}
 			object, err := getShape(ctx, value)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !intersection.Object.Equal(object) {
 				return fmt.Errorf("expected %s, got %s", object, intersection.Object)
@@ -214,7 +262,7 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^(\w+).count = (\d+)$`,
-		func (ctx context.Context, name string, c int) error {
+		func(ctx context.Context, name string, c int) error {
 			intersections, ok := ctx.Value(intersectionsKey{name}).(*rt.Intersections)
 			if !ok {
 				return fmt.Errorf("no intersections named %s found", name)
@@ -226,13 +274,13 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^(\w+)\[(\d+)\].t = (-?\d+\.?\d*)$`,
-		func (ctx context.Context, name string, idx int, val float64) error {
+		func(ctx context.Context, name string, idx int, val float64) error {
 			intersections, ok := ctx.Value(intersectionsKey{name}).(*rt.Intersections)
 			if !ok {
 				return fmt.Errorf("no intersections named %s found", name)
 			}
 			t := intersections.At(idx).T
-			if t != val {
+			if math.Abs(t - val) > rt.EPSILON {
 				return fmt.Errorf("expected %f, got %f", val, t)
 			}
 			return nil
@@ -245,17 +293,19 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 				return fmt.Errorf("no intersection named %s found", name)
 			}
 			object, err := getShape(ctx, value)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			expect := intersections.At(idx).Object
 			if !expect.Equal(object) {
 				return fmt.Errorf("expected %s, got %s", object, expect)
 			}
 			return nil
-		})	
+		})
 	sc.Then(
 		`^(\w) = (\w{1,2})$`,
-		func (ctx context.Context, name1, name2 string) error {
+		func(ctx context.Context, name1, name2 string) error {
 			intersection1, ok := ctx.Value(intersectionKey{name1}).(*rt.Intersection)
 			if !ok {
 				return fmt.Errorf("no intersection named %s found", name1)
@@ -271,7 +321,7 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^(\w) is nothing$`,
-		func (ctx context.Context, name string) error {
+		func(ctx context.Context, name string) error {
 			intersection, ok := ctx.Value(intersectionKey{name}).(*rt.Intersection)
 			if !ok {
 				return fmt.Errorf("no intersection named %s found", name)
@@ -283,9 +333,11 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^xs is empty$`,
-		func (ctx context.Context) error {
+		func(ctx context.Context) error {
 			intersections, err := getIntersections(ctx, "xs")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if intersections.Len() > 0 {
 				return fmt.Errorf("expected %s to be empty", "xs")
@@ -293,65 +345,79 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			return nil
 		})
 
-	sc.Then (
+	sc.Then(
 		`^(\w+).t = (\w+).t$`,
-		func (ctx context.Context, dest, source string) error {
+		func(ctx context.Context, dest, source string) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 			intersection, err := getIntersection(ctx, source)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if comps.T != intersection.T {
 				return fmt.Errorf("expected %f, got %f", intersection.T, comps.T)
 			}
 			return nil
 		})
-	sc.Then (
+	sc.Then(
 		`^(\w+).object = (\w+).object$`,
-		func (ctx context.Context, dest, source string) error {
+		func(ctx context.Context, dest, source string) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 			intersection, err := getIntersection(ctx, source)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !comps.Object.Equal(intersection.Object) {
 				return fmt.Errorf("expected %s, got %s", intersection.Object, comps.Object)
 			}
 			return nil
-		})	
-	sc.Then (
+		})
+	sc.Then(
 		`^(\w+).point = point\((-?\d+\.?\d*), (-?\d+\.?\d*), (-?\d+\.?\d*)\)$`,
-		func (ctx context.Context, dest string, x, y, z float64) error {
+		func(ctx context.Context, dest string, x, y, z float64) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
-			point := rt.NewPoint(x,y,z)
+			point := rt.NewPoint(x, y, z)
 
 			if !comps.Point.Equal(point) {
 				return fmt.Errorf("expected %s, got %s", point, comps.Point)
 			}
 			return nil
 		})
-	sc.Then (
+	sc.Then(
 		`^(\w+).eyev = vector\((-?\d+\.?\d*), (-?\d+\.?\d*), (-?\d+\.?\d*)\)$`,
-		func (ctx context.Context, dest string, x, y, z float64) error {
+		func(ctx context.Context, dest string, x, y, z float64) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
-			vector := rt.NewVector(x,y,z)
+			vector := rt.NewVector(x, y, z)
 
 			if !comps.Eye.Equal(vector) {
 				return fmt.Errorf("expected %s, got %s", vector, comps.Eye)
 			}
 			return nil
 		})
-	sc.Then (
+	sc.Then(
 		`^(\w+).normalv = vector\((-?\d+\.?\d*), (-?\d+\.?\d*), (-?\d+\.?\d*)\)$`,
-		func (ctx context.Context, dest string, x, y, z float64) error {
+		func(ctx context.Context, dest string, x, y, z float64) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
-			vector := rt.NewVector(x,y,z)
+			vector := rt.NewVector(x, y, z)
 
 			if !comps.Normal.Equal(vector) {
 				return fmt.Errorf("expected %s, got %s", vector, comps.Normal)
@@ -359,57 +425,67 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 			return nil
 		})
 
-	sc.Then (
+	sc.Then(
 		`^(\w+).inside = (\w+)$`,
-		func (ctx context.Context, dest, val string) error {
+		func(ctx context.Context, dest, val string) error {
 			comps, err := getComps(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 			expect := (val == "true")
 
 			if comps.Inside != expect {
-				return fmt.Errorf ("expected %v, got %v", expect, comps.Inside)
+				return fmt.Errorf("expected %v, got %v", expect, comps.Inside)
 			}
 			return nil
 		})
 
-	sc.Then (
+	sc.Then(
 		`^comps.over_point.z < -EPSILON/2$`,
-		func (ctx context.Context) error {
+		func(ctx context.Context) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !(comps.OverPoint.Z < -rt.EPSILON/2) {
 				return fmt.Errorf("expected comps.over_point.z < -EPSILON/2")
 			}
 			return nil
 		})
-	sc.Then (
+	sc.Then(
 		`^comps.under_point.z > EPSILON/2$`,
-		func (ctx context.Context) error {
+		func(ctx context.Context) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !(comps.UnderPoint.Z > -rt.EPSILON/2) {
 				return fmt.Errorf("expected comps.under_point.z > -EPSILON/2")
 			}
 			return nil
 		})
-    sc.Then (
+	sc.Then(
 		`^comps.point.z > comps.over_point.z$`,
-		func (ctx context.Context) error {
+		func(ctx context.Context) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !(comps.Point.Z > comps.OverPoint.Z) {
 				return fmt.Errorf("expected comps.point.z > comps.over_point.z")
 			}
 			return nil
 		})
-    sc.Then (
+	sc.Then(
 		`^comps.point.z < comps.under_point.z$`,
-		func (ctx context.Context) error {
+		func(ctx context.Context) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !(comps.Point.Z < comps.UnderPoint.Z) {
 				return fmt.Errorf("expected comps.point.z < comps.under_point.z")
@@ -418,12 +494,16 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 		})
 	sc.Then(
 		`^comps.reflectv = vector\((\S+), (\S+), (\S+)\)$`,
-		func (ctx context.Context, x, y, z string) error {
+		func(ctx context.Context, x, y, z string) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			v, err := vectorFromStrings(x, y, z)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if !comps.Reflect.Equal(v) {
 				return fmt.Errorf("expected %s, got %s", v, comps.Reflect)
@@ -433,23 +513,41 @@ func InitializeIntersectionScenario(sc *godog.ScenarioContext) {
 
 	sc.Then(
 		`^comps.n1 = (-?\d+\.?\d*)$`,
-		func (ctx context.Context, val float64) error {
+		func(ctx context.Context, val float64) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if comps.N1 != val {
 				return fmt.Errorf("expected %f, got %f", val, comps.N1)
 			}
 			return nil
 		})
-    sc.Then(
+	sc.Then(
 		`^comps.n2 = (-?\d+\.?\d*)$`,
-		func (ctx context.Context, val float64) error {
+		func(ctx context.Context, val float64) error {
 			comps, err := getComps(ctx, "comps")
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if comps.N2 != val {
 				return fmt.Errorf("expected %f, got %f", val, comps.N2)
+			}
+			return nil
+		})
+
+	sc.Then(
+		`^reflectance = (-?\d+\.?\d*)$`,
+		func(ctx context.Context, val float64) error {
+			reflectance, err := getFloat(ctx, "reflectance")
+			if err != nil {
+				return err
+			}
+
+			if math.Abs(reflectance-val) > rt.EPSILON {
+				return fmt.Errorf("expected %f, got %f", val, reflectance)
 			}
 			return nil
 		})

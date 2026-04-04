@@ -11,22 +11,26 @@ func main() {
 
 	var t *rt.Matrix
 	var err error
-	
+
 	floor := rt.NewSphere()
-	floor.Transform = rt.Scaling(10, 0.01, 10) 
+	floor.Transform = rt.Scaling(10, 0.01, 10)
 	floor.Material = rt.NewMaterial()
 	floor.Material.Color = rt.NewColor(1, 0.9, 0.9)
 	floor.Material.Specular = 0
-	
+
 	leftWall := rt.NewSphere()
 	t, err = rt.Multiply(rt.Translation(0, 0, 5), rt.RotationY(-math.Pi/4), rt.RotationX(math.Pi/2), rt.Scaling(10, 0.01, 10))
-	if err != nil {log.Fatalf("fail: %v", err)}
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 	leftWall.Transform = t
 	leftWall.Material = floor.Material
-	
+
 	rightWall := rt.NewSphere()
 	t, err = rt.Multiply(rt.Translation(0, 0, 5), rt.RotationY(math.Pi/4), rt.RotationX(math.Pi/2), rt.Scaling(10, 0.01, 10))
-	if err != nil {log.Fatalf("fail: %v", err)}
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 	rightWall.Transform = t
 	rightWall.Material = floor.Material
 
@@ -40,8 +44,10 @@ func main() {
 	middle.Material.Pattern.Transform = rt.Scaling(0.25, 0.25, 0.25)
 
 	right := rt.NewSphere()
-	t, err = rt.Multiply( rt.Translation(1.5, 0.5, -0.5), rt.Scaling(0.5, 0.5, 0.5))
-	if err != nil {log.Fatalf("fail: %v", err)}
+	t, err = rt.Multiply(rt.Translation(1.5, 0.5, -0.5), rt.Scaling(0.5, 0.5, 0.5))
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 	right.Transform = t
 	right.Material = rt.NewMaterial()
 	right.Material.Color = rt.NewColor(0.5, 1, 0.1)
@@ -50,7 +56,9 @@ func main() {
 
 	left := rt.NewSphere()
 	t, err = rt.Multiply(rt.Translation(-1.5, 0.33, -0.75), rt.Scaling(0.33, 0.33, 0.33))
-	if err != nil {log.Fatalf("fail: %v", err)}
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 	left.Transform = t
 	left.Material = rt.NewMaterial()
 	left.Material.Color = rt.NewColor(1, 0.8, 0.1)
@@ -72,11 +80,15 @@ func main() {
 		rt.NewPoint(0, 1, 0),
 		rt.NewVector(0, 1, 0))
 
-	if err != nil {log.Fatalf("fail: %v", err)}
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 	camera.Transform = t
-	// render the result to a canvas.​ ​  
+	// render the result to a canvas.​ ​
 	canvas, err := camera.Render(world)
-	if err != nil {log.Fatalf("fail: %v", err)}
+	if err != nil {
+		log.Fatalf("fail: %v", err)
+	}
 
 	ppm := canvas.ToPPM()
 	file, err := os.Create("render.ppm")

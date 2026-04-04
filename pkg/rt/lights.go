@@ -17,44 +17,42 @@ func NewPointLight(position *Tuple, intensity *Color) *Light {
 	}
 }
 
-func (l *Light) Equal (other *Light) bool {
+func (l *Light) Equal(other *Light) bool {
 	return l.Position.Equal(other.Position) && l.Intensity.Equal(other.Intensity)
 }
 
-func (l *Light) String () string {
+func (l *Light) String() string {
 	return fmt.Sprintf("light {p: %s i: %s}", l.Position, l.Intensity)
 }
 
-func Lighting(material *Material, light *Light, point, eye, normal *Tuple, inShadow bool) (*Color, error) {
+func Lighting(material *Material, shape *Shape, light *Light, pt, eye, normal *Tuple, inShadow bool) (*Color, error) {
+	diffuse := NewColor(0, 0, 0)
+	specular := NewColor(0, 0, 0)
 
+	var err error
 	color := material.Color
-	if material.Pattern != nil {
-		color = material.Pattern.ColorAt(point)
+	if material.Pattern != nil && shape != nil {
+		color, err = material.Pattern.ColorAtObject(shape, pt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	effectiveColor := color.Multiply(light.Intensity)
-	lightv := light.Position.Subtract(point).Normalize()
-	ambient := effectiveColor.MultiplyScalar(material.Ambient)
-	
+	effective_color := color.Multiply(light.Intensity)
+	lightv := light.Position.Subtract(pt).Normalize()
+	ambient := effective_color.MultiplyScalar(material.Ambient)
+
 	if inShadow {
 		return ambient, nil
 	}
 
 	lightDotNormal := lightv.Dot(normal)
+	if lightDotNormal >= 0 {
+		diffuse = effective_color.MultiplyScalar(material.Diffuse).MultiplyScalar(lightDotNormal)
+		reflectv := lightv.Negate().Reflect(normal)
+		reflectDotEye := reflectv.Dot(eye)
 
-	var diffuse *Color
-	var specular *Color
-	if lightDotNormal < 0 {
-		diffuse = NewColor(0, 0, 0)
-		specular = NewColor(0, 0, 0)
-	} else {
-		diffuse = effectiveColor.MultiplyScalar(material.Diffuse).MultiplyScalar(lightDotNormal)
-		reflect := lightv.Negate().Reflect(normal)
-		reflectDotEye := reflect.Dot(eye)
-
-		if reflectDotEye <= 0 {
-			specular = NewColor(0, 0, 0)
-		} else {
+		if reflectDotEye > 0 {
 			factor := math.Pow(reflectDotEye, material.Shininess)
 			specular = light.Intensity.MultiplyScalar(material.Specular).MultiplyScalar(factor)
 		}

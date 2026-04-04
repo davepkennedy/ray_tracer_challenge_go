@@ -1,13 +1,13 @@
 package rt
 
 type Ray struct {
-	Origin *Tuple
+	Origin    *Tuple
 	Direction *Tuple
 }
 
 func NewRay(origin *Tuple, direction *Tuple) *Ray {
 	return &Ray{
-		Origin: origin,
+		Origin:    origin,
 		Direction: direction,
 	}
 }
@@ -29,5 +29,5 @@ func (r *Ray) Transform(matrix *Matrix) (*Ray, error) {
 	}
 
 	return NewRay(newOrigin, newDirection), nil
-	
+
 }

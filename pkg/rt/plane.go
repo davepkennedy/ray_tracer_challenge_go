@@ -22,12 +22,12 @@ func (p PlaneTrait) String() string {
 
 func (p PlaneTrait) Intersect(ray *Ray) []float64 {
 	if math.Abs(ray.Direction.Y) < EPSILON {
-    	return []float64{}
+		return []float64{}
 	}
-    t := -ray.Origin.Y / ray.Direction.Y
-    return []float64{t}
+	t := -ray.Origin.Y / ray.Direction.Y
+	return []float64{t}
 }
 
-func (p PlaneTrait) LocalNormalAt (point *Tuple)  (*Tuple, error) {
-	return NewVector(0,1,0), nil
+func (p PlaneTrait) LocalNormalAt(point *Tuple) (*Tuple, error) {
+	return NewVector(0, 1, 0), nil
 }
