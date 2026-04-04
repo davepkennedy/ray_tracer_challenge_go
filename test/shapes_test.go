@@ -165,3 +165,7 @@ func (t TestShape) Intersect(ray *rt.Ray) []float64 {
 func (t TestShape) LocalNormalAt(point *rt.Tuple) (*rt.Tuple, error) {
 	return point, nil
 }
+
+func (t TestShape) AsCapped() *rt.Capped {
+	return nil
+}

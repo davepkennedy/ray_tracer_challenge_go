@@ -43,4 +43,5 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	InitializePatternsScenario(ctx)
 	InitializeCubeScenario(ctx)
 	InitializeCylinderScenario(ctx)
+	InitializeConesScenario(ctx)
 }

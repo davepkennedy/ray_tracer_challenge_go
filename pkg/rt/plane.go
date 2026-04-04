@@ -9,18 +9,18 @@ type PlaneTrait struct {
 }
 
 func NewPlane() *Shape {
-	return NewShape(PlaneTrait{})
+	return NewShape(&PlaneTrait{})
 }
 
-func (p PlaneTrait) Equal(other ShapeTrait) bool {
+func (p *PlaneTrait) Equal(other ShapeTrait) bool {
 	return reflect.TypeOf(p) == reflect.TypeOf(other)
 }
 
-func (p PlaneTrait) String() string {
+func (p *PlaneTrait) String() string {
 	return "plane{}"
 }
 
-func (p PlaneTrait) Intersect(ray *Ray) []float64 {
+func (p *PlaneTrait) Intersect(ray *Ray) []float64 {
 	if math.Abs(ray.Direction.Y) < EPSILON {
 		return []float64{}
 	}
@@ -28,6 +28,11 @@ func (p PlaneTrait) Intersect(ray *Ray) []float64 {
 	return []float64{t}
 }
 
-func (p PlaneTrait) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (p *PlaneTrait) LocalNormalAt(point *Tuple) (*Tuple, error) {
 	return NewVector(0, 1, 0), nil
+}
+
+
+func (p *PlaneTrait) AsCapped() *Capped {
+	return nil
 }

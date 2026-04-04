@@ -2,13 +2,29 @@ package rt
 
 import (
 	"fmt"
+	"math"
 )
+
+type Capped struct{
+	Closed bool
+	Minimum float64
+	Maximum float64
+}
+
+func NewCapped () Capped {
+	return Capped{
+		Closed: false,
+		Minimum: math.Inf(-1),
+		Maximum: math.Inf(1),
+	}
+}
 
 type ShapeTrait interface {
 	Equal(t ShapeTrait) bool
 	String() string
 	Intersect(ray *Ray) []float64
 	LocalNormalAt(point *Tuple) (*Tuple, error)
+	AsCapped() *Capped
 }
 
 type Shape struct {

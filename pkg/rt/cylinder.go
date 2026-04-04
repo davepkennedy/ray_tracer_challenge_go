@@ -6,15 +6,12 @@ import (
 )
 
 type Cylinder struct {
-	Closed bool
-	Minimum float64
-	Maximum float64
+	Capped
 }
 
 func NewCylinder() *Shape {
 	return NewShape(&Cylinder{
-		Minimum: math.Inf(-1),
-		Maximum: math.Inf(1),
+		Capped: NewCapped(),
 	})
 }
 
@@ -95,4 +92,8 @@ func (c *Cylinder) checkCap(r *Ray, t float64) bool {
     x := r.Origin.X + t * r.Direction.X
     z := r.Origin.Z + t * r.Direction.Z
     return (x * x + z * z) <= 1
+}
+
+func (c *Cylinder) AsCapped() *Capped {
+	return &c.Capped
 }

@@ -49,3 +49,7 @@ func (s *Sphere) Intersect(ray *Ray) []float64 {
 func (s *Sphere) LocalNormalAt(point *Tuple) (*Tuple, error) {
 	return point.Subtract(NewPoint(0, 0, 0)), nil
 }
+
+func (s *Sphere) AsCapped() *Capped {
+	return nil
+}

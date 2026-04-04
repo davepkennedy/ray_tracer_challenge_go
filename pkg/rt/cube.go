@@ -94,3 +94,7 @@ func (s *Cube) LocalNormalAt(point *Tuple) (*Tuple, error) {
 	}
     return NewVector(0, 0, point.Z), nil
 }
+
+func (s *Cube) AsCapped() *Capped {
+	return nil
+}

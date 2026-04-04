@@ -48,7 +48,11 @@ func parseFloat(s string) (float64, error) {
 		if err != nil {
 			return 0, err
 		}
-		return math.Sqrt(n), nil
+		result := math.Sqrt(n)
+		if s[0] == '-' {
+			result = -result
+		}
+		return result, nil
 	}
 
 	return strconv.ParseFloat(s, 64)

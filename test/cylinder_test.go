@@ -37,7 +37,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 		func(ctx context.Context, name string, val float64) (context.Context, error) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return ctx, err}
-			shape.Trait.(*rt.Cylinder).Minimum = val
+			shape.Trait.AsCapped().Minimum = val
 			return ctx, nil
 		})
 	sc.Given (
@@ -45,7 +45,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 		func(ctx context.Context, name string, val float64) (context.Context, error) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return ctx, err}
-			shape.Trait.(*rt.Cylinder).Maximum = val
+			shape.Trait.AsCapped().Maximum = val
 			return ctx, nil
 		})
 	sc.Given (
@@ -53,7 +53,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 		func(ctx context.Context, name string, val string) (context.Context, error) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return ctx, err}
-			shape.Trait.(*rt.Cylinder).Closed = val == "true"
+			shape.Trait.AsCapped().Closed = val == "true"
 			return ctx, nil
 		})
 
@@ -77,7 +77,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return err}
 			if shape.Trait.(*rt.Cylinder).Minimum != math.Inf(-1) {
-				return fmt.Errorf("expected minimum to be -infinity, got %f", shape.Trait.(*rt.Cylinder).Minimum)
+				return fmt.Errorf("expected minimum to be -infinity, got %f", shape.Trait.AsCapped().Minimum)
 			}
 			return nil
 		})
@@ -88,7 +88,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return err}
 			if shape.Trait.(*rt.Cylinder).Maximum != math.Inf(1) {
-				return fmt.Errorf("expected maximum to be infinity, got %f", shape.Trait.(*rt.Cylinder).Maximum)
+				return fmt.Errorf("expected maximum to be infinity, got %f", shape.Trait.AsCapped().Maximum)
 			}
 			return nil
 		})
@@ -98,7 +98,7 @@ func InitializeCylinderScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil {return err}
 			if shape.Trait.(*rt.Cylinder).Closed != false {
-				return fmt.Errorf("expected closed to be false, got %t", shape.Trait.(*rt.Cylinder).Closed)
+				return fmt.Errorf("expected closed to be false, got %t", shape.Trait.AsCapped().Closed)
 			}
 			return nil
 		})
