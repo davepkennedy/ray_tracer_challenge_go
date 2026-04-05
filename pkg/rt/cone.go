@@ -23,7 +23,7 @@ func (c *Cone) String() string {
 	return "cone{}"
 }
 
-func (cone *Cone) Intersect(ray *Ray) []float64 {
+func (cone *Cone) Intersect(s *Shape, ray *Ray) *Intersections {
 	dx, dy, dz := ray.Direction.X, ray.Direction.Y, ray.Direction.Z
 	ox, oy, oz := ray.Origin.X, ray.Origin.Y, ray.Origin.Z
 
@@ -33,7 +33,7 @@ func (cone *Cone) Intersect(ray *Ray) []float64 {
 
     disc := (b * b) - 4 * a * c
     if disc < 0 {
-		return []float64{}
+		return NewIntersections()
 	}
 	
 	ts := make([]float64, 0)
@@ -48,18 +48,18 @@ func (cone *Cone) Intersect(ray *Ray) []float64 {
 		ts = append(ts, t0, t1)
 	}
 
-    xs := make([]float64, 0)
+    xs := make([]*Intersection, 0)
 	for _, t := range ts {
 	    y0 := ray.Origin.Y + t * ray.Direction.Y
     	if cone.Minimum < y0 && y0 < cone.Maximum {
-    		xs = append(xs, t)
+    		xs = append(xs, NewIntersection(t, s))
 		}
 	}
             
-    return cone.intersectCaps(ray, xs)
+    return NewIntersections(cone.intersectCaps(s, ray, xs)...)
 }
         
-func (cone *Cone) intersectCaps(r *Ray, xs []float64) []float64{
+func (cone *Cone) intersectCaps(s *Shape, r *Ray, xs []*Intersection) []*Intersection{
     if !cone.Closed || math.Abs(r.Direction.Y) < EPSILON {
         return xs
 	}
@@ -68,7 +68,7 @@ func (cone *Cone) intersectCaps(r *Ray, xs []float64) []float64{
         t := (v - r.Origin.Y) / r.Direction.Y
             
         if cone.checkCap(r, t, math.Abs(v)) {
-            xs = append(xs, t)
+            xs = append(xs, NewIntersection(t, s))
         }
     }
 	return xs
@@ -102,4 +102,11 @@ func (cone *Cone) LocalNormalAt(pt *Tuple) (*Tuple, error) {
 
 func (cone *Cone) AsCapped() *Capped {
 	return &cone.Capped
+}
+
+func (cone *Cone) Bounds() *BoundingBox {
+	limit := math.Max(math.Abs(cone.Minimum), math.Abs(cone.Maximum))
+	return NewBoundingBox(
+		NewPoint(-limit, cone.Minimum, -limit),
+		NewPoint(limit, cone.Maximum, limit))
 }

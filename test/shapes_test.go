@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"math"
 
 	"raytracer/pkg/rt"
 
@@ -48,8 +49,19 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 				return ctx, err
 			}
 
-			pt := rt.Scaling(x, y, z)
-			shape.Transform = pt
+			shape.Transform = rt.Scaling(x, y, z)
+			return ctx, nil
+		})
+		
+	sc.Given(
+		`^set_transform\((\w+), rotation_y\(π/2\)\)$`,
+		func(ctx context.Context, target string) (context.Context, error) {
+			shape, err := getShape(ctx, target)
+			if err != nil {
+				return ctx, err
+			}
+
+			shape.Transform = rt.RotationY(math.Pi / 2)
 			return ctx, nil
 		})
 	sc.Given(
@@ -106,13 +118,31 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 				return ctx, err
 			}
 
-			ts := shape.Trait.Intersect(ray)
-			is := make([]*rt.Intersection, 0)
-			for _, t := range ts {
-				is = append(is, rt.NewIntersection(t, shape))
-			}
-			xs := rt.NewIntersections(is...)
+			xs := shape.Trait.Intersect(shape, ray)
 			return setIntersections(ctx, dest, xs), nil
+		})
+	sc.When(
+		`^(\w+) ← world_to_object\((\w+), point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)\)$`,
+		func(ctx context.Context, dest, shapeName string, x, y, z float64) (context.Context, error) {
+			shape, err := getShape(ctx, shapeName)
+			if err != nil {return ctx, err}
+
+			point := rt.NewPoint(x, y, z)
+			objectPoint, err := shape.WorldToObject(point)
+			if err != nil {return ctx, err}
+
+			return setTuple(ctx, dest, objectPoint), nil
+		})
+	sc.When(
+		`^(\w) ← normal_to_world\((\w+), vector\(√3/3, √3/3, √3/3\)\)$`,
+		func(ctx context.Context, dest, source string) (context.Context, error) {
+			shape, err := getShape(ctx, source)
+			if err != nil {return ctx, err}
+
+			normal, err := shape.NormalToWorld(rt.NewVector(math.Sqrt(3)/3, math.Sqrt(3)/3, math.Sqrt(3)/3))
+			if err != nil {return ctx, err}
+
+			return setTuple(ctx, dest, normal), nil
 		})
 
 	sc.Then(
@@ -147,6 +177,17 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 			}
 			return nil
 		})
+	sc.Then(
+		`^(\w).parent is nothing$`,
+		func(ctx context.Context, dest string) error {
+			shape, err := getShape(ctx, dest)
+			if err != nil {return err}
+
+			if shape.Parent != nil {
+				return fmt.Errorf("expected parent to be nil, got %s", shape.Parent)
+			}
+			return nil
+		})
 }
 
 func (t TestShape) Equal(other rt.ShapeTrait) bool {
@@ -157,9 +198,9 @@ func (t TestShape) String() string {
 	return "test_shape{}"
 }
 
-func (t TestShape) Intersect(ray *rt.Ray) []float64 {
+func (t TestShape) Intersect(s *rt.Shape, ray *rt.Ray) *rt.Intersections {
 	savedRay = ray
-	return []float64{}
+	return rt.NewIntersections()
 }
 
 func (t TestShape) LocalNormalAt(point *rt.Tuple) (*rt.Tuple, error) {
@@ -168,4 +209,10 @@ func (t TestShape) LocalNormalAt(point *rt.Tuple) (*rt.Tuple, error) {
 
 func (t TestShape) AsCapped() *rt.Capped {
 	return nil
+}
+
+func (t TestShape) Bounds() *rt.BoundingBox {
+	return rt.NewBoundingBox(
+		rt.NewPoint(-1, -1, -1),
+		rt.NewPoint(1, 1, 1))
 }

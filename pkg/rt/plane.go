@@ -20,19 +20,24 @@ func (p *PlaneTrait) String() string {
 	return "plane{}"
 }
 
-func (p *PlaneTrait) Intersect(ray *Ray) []float64 {
+func (p *PlaneTrait) Intersect(s *Shape, ray *Ray) *Intersections {
 	if math.Abs(ray.Direction.Y) < EPSILON {
-		return []float64{}
+		return NewIntersections()
 	}
 	t := -ray.Origin.Y / ray.Direction.Y
-	return []float64{t}
+	return NewIntersections(NewIntersection(t, s))
 }
 
 func (p *PlaneTrait) LocalNormalAt(point *Tuple) (*Tuple, error) {
 	return NewVector(0, 1, 0), nil
 }
 
-
 func (p *PlaneTrait) AsCapped() *Capped {
 	return nil
+}
+
+func (p *PlaneTrait) Bounds() *BoundingBox {
+	return NewBoundingBox(
+		NewPoint(math.Inf(-1), 0, math.Inf(-1)),
+		NewPoint(math.Inf(1), 0, math.Inf(1)))
 }

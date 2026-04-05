@@ -28,7 +28,7 @@ func (s *Sphere) String() string {
 	return "sphere{}"
 }
 
-func (s *Sphere) Intersect(ray *Ray) []float64 {
+func (s *Sphere) Intersect(shape *Shape, ray *Ray) *Intersections {
 	sphereToRay := ray.Origin.Subtract(NewPoint(0.0, 0.0, 0.0))
 
 	a := ray.Direction.Dot(ray.Direction)
@@ -38,12 +38,12 @@ func (s *Sphere) Intersect(ray *Ray) []float64 {
 	discriminant := (b * b) - 4.0*a*c
 
 	if discriminant < 0.0 {
-		return []float64{}
+		return NewIntersections()
 	}
 
 	t1 := (-b - math.Sqrt(discriminant)) / (2.0 * a)
 	t2 := (-b + math.Sqrt(discriminant)) / (2.0 * a)
-	return []float64{t1, t2}
+	return NewIntersections(NewIntersection(t1, shape), NewIntersection(t2, shape))
 }
 
 func (s *Sphere) LocalNormalAt(point *Tuple) (*Tuple, error) {
@@ -52,4 +52,10 @@ func (s *Sphere) LocalNormalAt(point *Tuple) (*Tuple, error) {
 
 func (s *Sphere) AsCapped() *Capped {
 	return nil
+}
+
+func (s *Sphere) Bounds() *BoundingBox {
+	return NewBoundingBox(
+		NewPoint(-1, -1, -1),
+		NewPoint(1, 1, 1))
 }

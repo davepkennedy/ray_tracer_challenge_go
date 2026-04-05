@@ -22,15 +22,17 @@ func NewCapped () Capped {
 type ShapeTrait interface {
 	Equal(t ShapeTrait) bool
 	String() string
-	Intersect(ray *Ray) []float64
+	Intersect(s* Shape, ray *Ray) *Intersections
 	LocalNormalAt(point *Tuple) (*Tuple, error)
 	AsCapped() *Capped
+	Bounds() *BoundingBox
 }
 
 type Shape struct {
 	Trait     ShapeTrait
 	Transform *Matrix
 	Material  *Material
+	Parent    *Shape
 }
 
 func NewShape(trait ShapeTrait) *Shape {
@@ -59,37 +61,15 @@ func (s *Shape) Intersect(ray *Ray) *Intersections {
 		return NewIntersections()
 	}
 
-	ts := s.Trait.Intersect(ray)
-	intersections := make([]*Intersection, 0)
-	for _, t := range ts {
-		intersections = append(intersections, NewIntersection(t, s))
+	return s.Trait.Intersect(s, ray)}
+
+func (s *Shape) WorldToObject(point *Tuple) (*Tuple, error) {
+    if s.Parent != nil {
+		var err error
+		point, err = s.Parent.WorldToObject(point)
+		if err != nil {return nil, err}
 	}
-	return NewIntersections(intersections...)
-}
 
-/*
-def normal_at(self, pt, i):
-        local_point = self.world_to_object(pt)
-        local_normal = self.local_normal_at(local_point, i)
-        return self.normal_to_world(local_normal)
-
-    def world_to_object(self, pt):
-        if self.has_parent:
-            pt = self.parent.world_to_object(pt)
-        return self.transform.inverse() * pt
-
-    def normal_to_world (self, normal):
-        normal = self.transform.inverse().transpose() * normal
-        normal = Vector(normal.x, normal.y, normal.z)
-        normal = normal.normalize()
-
-        if self.has_parent:
-            normal = self.parent.normal_to_world(normal)
-
-        return normal
-*/
-
-func (s *Shape) worldToObject(point *Tuple) (*Tuple, error) {
 	inv, err := s.Transform.Inverse()
 	if err != nil {
 		return nil, err
@@ -97,7 +77,7 @@ func (s *Shape) worldToObject(point *Tuple) (*Tuple, error) {
 	return inv.MultiplyTuple(point)
 }
 
-func (s *Shape) normalToWorld(normal *Tuple) (*Tuple, error) {
+func (s *Shape) NormalToWorld(normal *Tuple) (*Tuple, error) {
 	inv, err := s.Transform.Inverse()
 	if err != nil {
 		return nil, err
@@ -111,16 +91,18 @@ func (s *Shape) normalToWorld(normal *Tuple) (*Tuple, error) {
 	normal = NewVector(normal.X, normal.Y, normal.Z)
 	normal = normal.Normalize()
 
-	/*
-		if self.has_parent:
-	            normal = self.parent.normal_to_world(normal)
-	*/
+	
+    if s.Parent != nil {
+		var err error
+		normal, err = s.Parent.NormalToWorld(normal)
+		if err != nil {return nil, err}
+	}
 	return normal, nil
 }
 
 func (s *Shape) NormalAt(point *Tuple) (*Tuple, error) {
 
-	localPoint, err := s.worldToObject(point)
+	localPoint, err := s.WorldToObject(point)
 	if err != nil {
 		return nil, err
 	}
@@ -130,5 +112,21 @@ func (s *Shape) NormalAt(point *Tuple) (*Tuple, error) {
 		return nil, err
 	}
 
-	return s.normalToWorld(localNormal)
+	return s.NormalToWorld(localNormal)
+}
+
+func (s *Shape) AddChild(child *Shape) {
+	child.Parent = s
+	trait, ok := s.Trait.(*Group)
+	if !ok {return}
+	trait.Children = append(trait.Children, child)
+}
+
+func (s *Shape) Bounds() *BoundingBox {
+	return s.Trait.Bounds()
+}
+
+func (s *Shape) ParentSpaceBounds() (*BoundingBox, error) {
+	b := s.Bounds()
+	return b.Transform(s.Transform)
 }

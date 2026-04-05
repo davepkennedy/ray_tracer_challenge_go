@@ -23,14 +23,14 @@ func (c *Cylinder) String() string {
 	return "cylinder{}"
 }
 
-func (cyl *Cylinder) Intersect(ray *Ray) []float64 {
+func (cyl *Cylinder) Intersect(s* Shape, ray *Ray) *Intersections {
 	a := (ray.Direction.X * ray.Direction.X) + (ray.Direction.Z * ray.Direction.Z)
     b := 2 * ray.Origin.X * ray.Direction.X + 2 * ray.Origin.Z * ray.Direction.Z
 	c := (ray.Origin.X * ray.Origin.X) + (ray.Origin.Z * ray.Origin.Z) - 1
 
     disc := (b * b) - 4 * a * c
     if disc < 0 {
-		return []float64{}
+		return NewIntersections()
 	}
 	
 	var t0, t1 float64
@@ -46,18 +46,18 @@ func (cyl *Cylinder) Intersect(ray *Ray) []float64 {
     	t1, t0 = t0, t1
 	}
 
-    xs := make([]float64, 0)
+    xs := make([]*Intersection, 0)
     y0 := ray.Origin.Y + t0 * ray.Direction.Y
     if cyl.Minimum < y0 && y0 < cyl.Maximum {
-    	xs = append(xs, t0)
+    	xs = append(xs, NewIntersection(t0, s))
 	}
             
     y1 := ray.Origin.Y + t1 * ray.Direction.Y
     if cyl.Minimum < y1 && y1 < cyl.Maximum {
-        xs = append(xs, t1)
+        xs = append(xs, NewIntersection(t1, s))
 	}
             
-    return cyl.intersectCaps(ray, xs)
+    return NewIntersections(cyl.intersectCaps(s, ray, xs)...)
 }
 
 func (c *Cylinder) LocalNormalAt(pt *Tuple) (*Tuple, error) {
@@ -74,7 +74,7 @@ func (c *Cylinder) LocalNormalAt(pt *Tuple) (*Tuple, error) {
 	return NewVector(pt.X, 0, pt.Z), nil
 }
 
- func (c *Cylinder) intersectCaps(r *Ray, xs []float64) []float64 {
+ func (c *Cylinder) intersectCaps(s *Shape, r *Ray, xs []*Intersection) []*Intersection {
     if !c.Closed || math.Abs(r.Direction.Y) < EPSILON {	
         return xs
 	}
@@ -82,7 +82,7 @@ func (c *Cylinder) LocalNormalAt(pt *Tuple) (*Tuple, error) {
     for _, v := range []float64{c.Minimum, c.Maximum} {
         t := (v - r.Origin.Y) / r.Direction.Y
         if c.checkCap(r, t) {
-            xs = append(xs, t)
+            xs = append(xs, NewIntersection(t, s))
 		}
 	}
     return xs
@@ -96,4 +96,10 @@ func (c *Cylinder) checkCap(r *Ray, t float64) bool {
 
 func (c *Cylinder) AsCapped() *Capped {
 	return &c.Capped
+}
+
+func (c *Cylinder) Bounds() *BoundingBox {
+	return NewBoundingBox(
+		NewPoint(-1, c.Minimum, -1),
+		NewPoint(1, c.Maximum, 1))
 }

@@ -70,7 +70,7 @@ func checkAxis(origin, direction float64) (float64, float64) {
     return tmin, tmax
 }
 
-func (s *Cube) Intersect(ray *Ray) []float64 {
+func (s *Cube) Intersect(shape* Shape, ray *Ray) *Intersections {
 	xtmin, xtmax := checkAxis(ray.Origin.X, ray.Direction.X)
     ytmin, ytmax := checkAxis(ray.Origin.Y, ray.Direction.Y)
     ztmin, ztmax := checkAxis(ray.Origin.Z, ray.Direction.Z)
@@ -79,9 +79,12 @@ func (s *Cube) Intersect(ray *Ray) []float64 {
     tmax := MinA(xtmax, ytmax, ztmax)
 
 	if (tmin > tmax) {
-        return []float64{} 
+        return NewIntersections()
 	} 
-	return []float64{tmin, tmax}
+	
+	return NewIntersections(
+		NewIntersection(tmin, shape), 
+		NewIntersection(tmax, shape))
 }
 
 func (s *Cube) LocalNormalAt(point *Tuple) (*Tuple, error) {
@@ -98,3 +101,9 @@ func (s *Cube) LocalNormalAt(point *Tuple) (*Tuple, error) {
 func (s *Cube) AsCapped() *Capped {
 	return nil
 }
+
+func (c *Cube) Bounds() *BoundingBox {
+	return NewBoundingBox(
+		NewPoint(-1, -1, -1),
+	    NewPoint(1, 1, 1))
+	}

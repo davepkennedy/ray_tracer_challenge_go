@@ -161,7 +161,7 @@ func InitializePatternsScenario(sc *godog.ScenarioContext) {
 		patternAtShape)
 
 	sc.Then(
-		`(\w+).transform = identity_matrix$`,
+		`(\w\w+).transform = identity_matrix$`,
 		func(ctx context.Context, dest string) error {
 			pattern, err := getPattern(ctx, dest)
 			if err != nil {

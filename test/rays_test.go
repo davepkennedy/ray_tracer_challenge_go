@@ -11,11 +11,7 @@ import (
 
 type rayKey struct{ Name string }
 
-func InitializeRaysScenario(sc *godog.ScenarioContext) {
-
-	sc.Given(
-		`^(\w+) ← ray\(point\((\S+), (\S+), (\S+)\), vector\((\S+), (\S+), (\S+)\)\)$`,
-		func(ctx context.Context, name string, x1, y1, z1, x2, y2, z2 string) (context.Context, error) {
+func createRay (ctx context.Context, name string, x1, y1, z1, x2, y2, z2 string) (context.Context, error) {
 			point, err := pointFromStrings(x1, y1, z1)
 			if err != nil {
 				return ctx, err
@@ -25,7 +21,17 @@ func InitializeRaysScenario(sc *godog.ScenarioContext) {
 				return ctx, err
 			}
 			return setRay(ctx, name, rt.NewRay(point, vector)), nil
-		})
+		}
+
+func InitializeRaysScenario(sc *godog.ScenarioContext) {
+
+	sc.Given(
+		`^(\w+) ← ray\(point\((\S+), (\S+), (\S+)\), vector\((\S+), (\S+), (\S+)\)\)$`,
+		createRay)
+		
+	sc.When(
+		`^(\w+) ← ray\(point\((\S+), (\S+), (\S+)\), vector\((\S+), (\S+), (\S+)\)\)$`,
+		createRay)
 
 	sc.When(
 		`^(\w+) ← ray\((\w+), (\w+)\)$`,
