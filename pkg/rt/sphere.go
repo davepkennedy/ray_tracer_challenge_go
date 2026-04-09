@@ -46,7 +46,7 @@ func (s *Sphere) Intersect(shape *Shape, ray *Ray) *Intersections {
 	return NewIntersections(NewIntersection(t1, shape), NewIntersection(t2, shape))
 }
 
-func (s *Sphere) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (s *Sphere) LocalNormalAt(point *Tuple, _ *Intersection) (*Tuple, error) {
 	return point.Subtract(NewPoint(0, 0, 0)), nil
 }
 

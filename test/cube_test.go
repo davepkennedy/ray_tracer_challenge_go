@@ -25,7 +25,7 @@ func InitializeCubeScenario(sc *godog.ScenarioContext) {
 			point, err := getTuple(ctx, pointName)
 			if err != nil {return ctx, err}
 
-			normal, err := shape.Trait.LocalNormalAt(point)
+			normal, err := shape.Trait.LocalNormalAt(point, nil)
 			if err != nil {return ctx, err}
 			return setTuple(ctx, dest, normal), nil
 		})

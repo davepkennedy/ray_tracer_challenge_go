@@ -25,7 +25,7 @@ func InitializePlaneScenario(sc *godog.ScenarioContext) {
 
 			p := rt.NewPoint(x, y, z)
 
-			m, err := shape.Trait.LocalNormalAt(p)
+			m, err := shape.Trait.LocalNormalAt(p, nil)
 			if err != nil {
 				return ctx, err
 			}

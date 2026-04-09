@@ -23,7 +23,7 @@ type ShapeTrait interface {
 	Equal(t ShapeTrait) bool
 	String() string
 	Intersect(s* Shape, ray *Ray) *Intersections
-	LocalNormalAt(point *Tuple) (*Tuple, error)
+	LocalNormalAt(point *Tuple, i *Intersection) (*Tuple, error)
 	AsCapped() *Capped
 	Bounds() *BoundingBox
 }
@@ -100,14 +100,14 @@ func (s *Shape) NormalToWorld(normal *Tuple) (*Tuple, error) {
 	return normal, nil
 }
 
-func (s *Shape) NormalAt(point *Tuple) (*Tuple, error) {
+func (s *Shape) NormalAt(point *Tuple, i *Intersection) (*Tuple, error) {
 
 	localPoint, err := s.WorldToObject(point)
 	if err != nil {
 		return nil, err
 	}
 
-	localNormal, err := s.Trait.LocalNormalAt(localPoint)
+	localNormal, err := s.Trait.LocalNormalAt(localPoint, i)
 	if err != nil {
 		return nil, err
 	}
@@ -115,11 +115,13 @@ func (s *Shape) NormalAt(point *Tuple) (*Tuple, error) {
 	return s.NormalToWorld(localNormal)
 }
 
-func (s *Shape) AddChild(child *Shape) {
-	child.Parent = s
+func (s *Shape) AddChildren(children... *Shape) {
 	trait, ok := s.Trait.(*Group)
 	if !ok {return}
-	trait.Children = append(trait.Children, child)
+	for _, child := range children {
+		child.Parent = s
+		trait.Children = append(trait.Children, child)
+	}
 }
 
 func (s *Shape) Bounds() *BoundingBox {

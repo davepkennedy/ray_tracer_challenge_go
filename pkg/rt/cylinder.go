@@ -60,7 +60,7 @@ func (cyl *Cylinder) Intersect(s* Shape, ray *Ray) *Intersections {
     return NewIntersections(cyl.intersectCaps(s, ray, xs)...)
 }
 
-func (c *Cylinder) LocalNormalAt(pt *Tuple) (*Tuple, error) {
+func (c *Cylinder) LocalNormalAt(pt *Tuple, _ *Intersection) (*Tuple, error) {
 	dist := (pt.X * pt.X) + (pt.Z * pt.Z)
 
     if dist < 1 && pt.Y >= (c.Maximum - EPSILON){

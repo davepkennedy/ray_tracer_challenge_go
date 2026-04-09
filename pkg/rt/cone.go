@@ -81,7 +81,7 @@ func (cone *Cone) checkCap(r *Ray, t float64, radius float64) bool {
     return (x * x + z * z) <= radius
 }
 
-func (cone *Cone) LocalNormalAt(pt *Tuple) (*Tuple, error) {
+func (cone *Cone) LocalNormalAt(pt *Tuple, _ *Intersection) (*Tuple, error) {
 	dist := (pt.X * pt.X) + (pt.Z * pt.Z)
         
 	if dist < 1 && pt.Y >= (cone.Maximum - EPSILON) {

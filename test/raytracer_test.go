@@ -46,4 +46,6 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	InitializeConesScenario(ctx)
 	InitializeGroupsScenario(ctx)
 	InitializeTrianglesScenario(ctx)
+	InitializeObjFileScenario(ctx)
+	InitializeSmoothTrianglesScenario(ctx)
 }

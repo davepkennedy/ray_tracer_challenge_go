@@ -143,7 +143,7 @@ func InitializeSphereScenario(sc *godog.ScenarioContext) {
 			if err != nil {
 				return ctx, err
 			}
-			normal, err := shape.NormalAt(point)
+			normal, err := shape.NormalAt(point, nil)
 			if err != nil {
 				return ctx, err
 			}

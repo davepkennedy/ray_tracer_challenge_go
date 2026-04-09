@@ -14,6 +14,8 @@ type floatKey struct{ Name string }
 type cameraKey struct{ Name string }
 type shapeKey struct{ Name string }
 type patternKey struct{ Name string }
+type objFileKey struct{ Name string }
+type groupKey struct { Name string }
 
 func getBoolean(ctx context.Context, name string) (bool, error) {
 	val, ok := ctx.Value(boolKey{name}).(bool)
@@ -101,6 +103,9 @@ func getIntersection(ctx context.Context, name string) (*rt.Intersection, error)
 	}
 	return val, nil
 }
+func setIntersection (ctx context.Context, name string, val *rt.Intersection) context.Context{
+	return context.WithValue(ctx, intersectionKey{name}, val)
+}
 
 func getIntersections(ctx context.Context, name string) (*rt.Intersections, error) {
 	val, ok := ctx.Value(intersectionsKey{name}).(*rt.Intersections)
@@ -142,6 +147,18 @@ func setMatrix(ctx context.Context, name string, matrix *rt.Matrix) context.Cont
 	return context.WithValue(ctx, matrixKey{name}, matrix)
 }
 
+func getObjFile(ctx context.Context, name string) (*rt.ObjFile, error) {
+	val, ok := ctx.Value(objFileKey{name}).(*rt.ObjFile)
+	if !ok {
+		return nil, fmt.Errorf("no obj file named %s found", name)
+	}
+	return val, nil
+}
+
+func setObjFile(ctx context.Context, name string, objFile *rt.ObjFile) context.Context {
+	return context.WithValue(ctx, objFileKey{name}, objFile)
+}
+
 func getPattern(ctx context.Context, name string) (*rt.Pattern, error) {
 	val, ok := ctx.Value(patternKey{name}).(*rt.Pattern)
 	if !ok {
@@ -175,6 +192,17 @@ func getShape(ctx context.Context, name string) (*rt.Shape, error) {
 }
 func setShape(ctx context.Context, name string, shape *rt.Shape) context.Context {
 	return context.WithValue(ctx, shapeKey{name}, shape)
+}
+
+func getString(ctx context.Context, name string) (string, error) {
+	val, ok := ctx.Value(stringKey{name}).(string)
+	if !ok {
+		return "", fmt.Errorf("no string named %s found", name)
+	}
+	return val, nil
+}
+func setString (ctx context.Context, name string, val string) context.Context {
+	return context.WithValue(ctx, stringKey{name}, val)
 }
 
 func getTuple(ctx context.Context, name string) (*rt.Tuple, error) {

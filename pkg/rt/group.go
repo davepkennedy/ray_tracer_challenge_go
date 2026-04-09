@@ -3,7 +3,6 @@ package rt
 import (
 	"fmt"
 	"sort"
-	"reflect"
 )
 
 type Group struct {
@@ -15,7 +14,20 @@ func NewGroup() *Shape {
 }
 
 func (g *Group) Equal(other ShapeTrait) bool {
-	return reflect.TypeOf(g) == reflect.TypeOf(other)
+	otherGroup, ok := other.(*Group)
+	if !ok {return false}
+
+	for _, child := range otherGroup.Children {
+		if !g.Contains(child) {
+			return false
+		}
+	}
+	for _, child := range g.Children {
+		if !otherGroup.Contains(child) {
+			return false
+		}
+	}
+	return true
 }
 
 func (g *Group) String() string {
@@ -39,7 +51,7 @@ func (g *Group) AsCapped() *Capped {
 	return nil
 }
 
-func (g *Group) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (g *Group) LocalNormalAt(point *Tuple, _ *Intersection) (*Tuple, error) {
 	return nil, fmt.Errorf("not implemented for group")
 }
 
@@ -55,4 +67,13 @@ func (g *Group) Bounds() *BoundingBox {
 		box.AddBox(shape.Bounds())
 	}
 	return box
+}
+
+func (g *Group) Contains (s *Shape) bool{
+	for _, child := range g.Children {
+		if child.Equal(s) {
+			return true
+		}
+	}
+	return false
 }

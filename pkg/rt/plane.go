@@ -28,7 +28,7 @@ func (p *PlaneTrait) Intersect(s *Shape, ray *Ray) *Intersections {
 	return NewIntersections(NewIntersection(t, s))
 }
 
-func (p *PlaneTrait) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (p *PlaneTrait) LocalNormalAt(point *Tuple, _ *Intersection) (*Tuple, error) {
 	return NewVector(0, 1, 0), nil
 }
 

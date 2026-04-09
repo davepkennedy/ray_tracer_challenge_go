@@ -87,7 +87,7 @@ func (s *Cube) Intersect(shape* Shape, ray *Ray) *Intersections {
 		NewIntersection(tmax, shape))
 }
 
-func (s *Cube) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (s *Cube) LocalNormalAt(point *Tuple, _ *Intersection) (*Tuple, error) {
 	maxc := MaxA(math.Abs(point.X), math.Abs(point.Y), math.Abs(point.Z))
         
     if maxc == math.Abs(point.X) {

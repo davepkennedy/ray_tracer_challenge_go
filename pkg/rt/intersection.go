@@ -8,8 +8,10 @@ import (
 )
 
 type Intersection struct {
-	T      float64
-	Object *Shape
+	T      	float64
+	Object 	*Shape
+	U 		float64
+	V		float64
 }
 
 type Intersections struct {
@@ -20,11 +22,17 @@ func NewIntersections(i ...*Intersection) *Intersections {
 	return &Intersections{i}
 }
 
-func NewIntersection(t float64, object *Shape) *Intersection {
+func NewIntersectionWithUV (t float64, object *Shape, u, v float64) *Intersection {
 	return &Intersection{
 		T:      t,
 		Object: object,
+		U:		u,
+		V:		v,
 	}
+}
+
+func NewIntersection(t float64, object *Shape) *Intersection {
+	return NewIntersectionWithUV(t, object, 0, 0)
 }
 
 func filter(i []*Intersection) []*Intersection {
@@ -99,7 +107,7 @@ func (i *Intersection) PrepareComputations(r *Ray, xs *Intersections) (*Computat
 	}
 
 	pos := r.Position(i.T)
-	normal, err := i.Object.NormalAt(pos)
+	normal, err := i.Object.NormalAt(pos, i)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare computations: %w", err)
 	}

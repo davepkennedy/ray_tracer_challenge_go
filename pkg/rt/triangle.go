@@ -2,7 +2,6 @@ package rt
 
 import (
 	"math"
-	"reflect"
 )
 
 type Triangle struct {
@@ -31,7 +30,12 @@ func (t *Triangle) LocalIntersect(ray Ray) Intersections {
 }
 
 func (t *Triangle) Equal(other ShapeTrait) bool {
-	return reflect.TypeOf(t) == reflect.TypeOf(other)
+	ot, ok := other.(*Triangle)
+	if !ok {return false}
+
+	return t.P1.Equal(ot.P1) &&
+		t.P2.Equal(ot.P2) &&
+		t.P3.Equal(ot.P3)
 }
 
 func (t *Triangle) String() string {
@@ -71,9 +75,9 @@ func (tri *Triangle) Intersect(shape *Shape, ray *Ray) *Intersections {
             
     t := f * tri.E2.Dot(origin_cross_e1)
     return NewIntersections(
-    		NewIntersection(t, shape))
+    		NewIntersectionWithUV(t, shape, u, v))
 }
 
-func (t *Triangle) LocalNormalAt(point *Tuple) (*Tuple, error) {
+func (t *Triangle) LocalNormalAt(point *Tuple, i *Intersection) (*Tuple, error) {
 	return t.Normal, nil
 }

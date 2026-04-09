@@ -203,7 +203,7 @@ func (t TestShape) Intersect(s *rt.Shape, ray *rt.Ray) *rt.Intersections {
 	return rt.NewIntersections()
 }
 
-func (t TestShape) LocalNormalAt(point *rt.Tuple) (*rt.Tuple, error) {
+func (t TestShape) LocalNormalAt(point *rt.Tuple, _ *rt.Intersection) (*rt.Tuple, error) {
 	return point, nil
 }
 

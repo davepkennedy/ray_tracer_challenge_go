@@ -9,6 +9,20 @@ import (
 	"github.com/cucumber/godog"
 )
 
+var (
+	ErrNotTriangle = fmt.Errorf ("Shape Trait is not Triangular")
+)
+
+func getTriangle (shape *rt.Shape) (*rt.Triangle, error) {
+	t, ok := shape.Trait.(*rt.Triangle)
+	if ok {return t, nil}
+
+	st, ok := shape.Trait.(*rt.SmoothTriangle)
+	if !ok {return nil, ErrNotTriangle}
+
+	return &st.Triangle, nil
+}
+
 func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w) ← triangle\((\w+), (\w+), (\w+)\)$`,
@@ -33,39 +47,48 @@ func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 		})
 
 	sc.Then(
-		`^(\w).p1 = (\w+)$`,
+		`^(\w+).p1 = (\w+)$`,
 		func(ctx context.Context, name, pointName string) error {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			point, err := getTuple(ctx, pointName)
 			if err != nil { return err }
-			if !shape.Trait.(*rt.Triangle).P1.Equal(point) {
+
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.P1.Equal(point) {
 				return fmt.Errorf("expected %s.p1 to be %s, got %s", name, pointName, shape.Trait.(*rt.Triangle).P1)
 			}
 			return nil
 		})	
 
 	sc.Then(
-		`^(\w).p2 = (\w+)$`,
+		`^(\w+).p2 = (\w+)$`,
 		func(ctx context.Context, name, pointName string) error {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			point, err := getTuple(ctx, pointName)
 			if err != nil { return err }
-			if !shape.Trait.(*rt.Triangle).P2.Equal(point) {
+
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.P2.Equal(point) {
 				return fmt.Errorf("expected %s.p2 to be %s, got %s", name, pointName, shape.Trait.(*rt.Triangle).P2)
 			}
 			return nil
 		})
 
 	sc.Then(
-		`^(\w).p3 = (\w+)$`,
+		`^(\w+).p3 = (\w+)$`,
 		func(ctx context.Context, name, pointName string) error {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			point, err := getTuple(ctx, pointName)
 			if err != nil { return err }
-			if !shape.Trait.(*rt.Triangle).P3.Equal(point) {
+
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.P3.Equal(point) {
 				return fmt.Errorf("expected %s.p3 to be %s, got %s", name, pointName, shape.Trait.(*rt.Triangle).P3)
 			}
 			return nil
@@ -77,7 +100,10 @@ func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			edge := rt.NewVector(x, y, z)
-			if !shape.Trait.(*rt.Triangle).E1.Equal(edge) {
+
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.E1.Equal(edge) {
 				return fmt.Errorf("expected %s.e1 to be %s, got %s", name, edge, shape.Trait.(*rt.Triangle).E1)
 			}
 			return nil
@@ -89,7 +115,9 @@ func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			edge := rt.NewVector(x, y, z)
-			if !shape.Trait.(*rt.Triangle).E2.Equal(edge) {
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.E2.Equal(edge) {
 				return fmt.Errorf("expected %s.e2 to be %s, got %s", name, edge, shape.Trait.(*rt.Triangle).E2)
 			}
 			return nil
@@ -101,7 +129,10 @@ func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 			shape, err := getShape(ctx, name)
 			if err != nil { return err }
 			normal := rt.NewVector(x, y, z)
-			if !shape.Trait.(*rt.Triangle).Normal.Equal(normal) {
+
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+			if !trait.Normal.Equal(normal) {
 				return fmt.Errorf("expected %s.normal to be %s, got %s", name, normal, shape.Trait.(*rt.Triangle).Normal)
 			}
 			return nil
@@ -116,7 +147,10 @@ func InitializeTrianglesScenario(sc *godog.ScenarioContext) {
 			normal, err := getTuple(ctx, dest)
 			if err != nil { return err }
 
-			if !shape.Trait.(*rt.Triangle).Normal.Equal(normal) {
+			trait, err := getTriangle(shape)
+			if err != nil {return err}
+
+			if !trait.Normal.Equal(normal) {
 				return fmt.Errorf("expected %s to be %s, got %s", dest, normal, shape.Trait.(*rt.Triangle).Normal)
 			}
 			return nil

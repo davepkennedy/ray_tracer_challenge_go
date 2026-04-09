@@ -16,7 +16,7 @@ func addChild(ctx context.Context, target, source string) (context.Context, erro
 	sourceShape, err := getShape(ctx, source)
 	if err != nil {return ctx, err}
 
-	targetShape.AddChild(sourceShape)
+	targetShape.AddChildren(sourceShape)
 	return ctx, nil
 }
 
@@ -30,6 +30,16 @@ func InitializeGroupsScenario(sc *godog.ScenarioContext) {
 
 	sc.Given(`^add_child\((\w+), (\w+)\)$`, addChild)
 	sc.When(`^add_child\((\w+), (\w+)\)$`, addChild)
+
+	sc.When(
+		`^(\w) ← obj_to_group\((\w+)\)$`,
+		func (ctx context.Context, dest, source string) (context.Context, error) {
+			objFile, err := getObjFile(ctx, source)
+			if err != nil {return ctx, err}
+
+			group := objFile.ToGroup()
+			return setShape(ctx, dest, group), nil
+		})
 
 	sc.Then (
 		`^(\w) is empty$`,
