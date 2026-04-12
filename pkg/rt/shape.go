@@ -5,6 +5,9 @@ import (
 	"math"
 )
 
+var (
+	_ Equality = (ShapeTrait)(nil)
+)
 type Capped struct{
 	Closed bool
 	Minimum float64
@@ -20,12 +23,13 @@ func NewCapped () Capped {
 }
 
 type ShapeTrait interface {
-	Equal(t ShapeTrait) bool
+	Equal(t any) bool
 	String() string
 	Intersect(s* Shape, ray *Ray) *Intersections
 	LocalNormalAt(point *Tuple, i *Intersection) (*Tuple, error)
 	AsCapped() *Capped
 	Bounds() *BoundingBox
+	Includes (s *Shape, other *Shape) bool
 }
 
 type Shape struct {
@@ -49,6 +53,10 @@ func (s *Shape) Equal(other *Shape) bool {
 
 func (s *Shape) String() string {
 	return fmt.Sprintf("shape{%s %f}", s.Trait, s.Material.RefractiveIndex)
+}
+
+func (s *Shape) Includes (other *Shape) bool {
+	return s.Trait.Includes(s, other)
 }
 
 func (s *Shape) Intersect(ray *Ray) *Intersections {

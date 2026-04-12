@@ -10,8 +10,6 @@ import (
 	"github.com/cucumber/godog"
 )
 
-type matrixKey struct{ Name string }
-
 func buildNByNMatrix(n int, table *godog.Table) (*rt.Matrix, error) {
 	data := make([]float64, 0)
 
@@ -32,12 +30,12 @@ func createNByNMatrix(ctx context.Context, name string, n int, table *godog.Tabl
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create matrix '%s': %v", name, err)
 	}
-	return context.WithValue(ctx, matrixKey{name}, matrix), nil
+	return setMatrix(ctx, name, matrix), nil
 }
 
 func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-		ctx = context.WithValue(ctx, matrixKey{"identity_matrix"}, rt.IdentityMatrix())
+		ctx = setMatrix(ctx, "identity_matrix", rt.IdentityMatrix())
 		return ctx, nil
 	})
 
@@ -55,81 +53,86 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← inverse\((\w+)\)$`,
 		func(ctx context.Context, dest, source string) (context.Context, error) {
-			matrix, ok := ctx.Value(matrixKey{source}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", source)
+			matrix, err := getMatrix(ctx, source)
+			if err != nil {
+				return ctx, err
 			}
-			matrix, err := matrix.Inverse()
+
+			matrix, err = matrix.Inverse()
 			if err != nil {
 				return ctx, fmt.Errorf("matrix %s is not invertible", source)
 			}
-			return context.WithValue(ctx, matrixKey{dest}, matrix), nil
+			return setMatrix(ctx, dest, matrix), nil
 		})
 
 	sc.Given(
 		`^(\w+) ← transpose\((\w+)\)$`,
 		func(ctx context.Context, dest, source string) (context.Context, error) {
-			matrix, ok := ctx.Value(matrixKey{source}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", source)
+			matrix, err := getMatrix(ctx, source)
+			if err != nil {
+				return ctx, err
 			}
+
 			matrix = matrix.Transpose()
 
-			return context.WithValue(ctx, matrixKey{dest}, matrix), nil
+			return setMatrix(ctx, dest, matrix), nil
 		})
 	sc.Given(
 		`^(\w+) ← submatrix\((\w+), (\d+), (\d+)\)$`,
 		func(ctx context.Context, dest, source string, row, col int) (context.Context, error) {
-			matrix, ok := ctx.Value(matrixKey{source}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", source)
+			matrix, err := getMatrix(ctx, source)
+			if err != nil {
+				return ctx, err
 			}
+
 			matrix = matrix.Submatrix(row, col)
-			return context.WithValue(ctx, matrixKey{dest}, matrix), nil
+			return setMatrix(ctx, dest, matrix), nil
 		})
 	sc.Given(
 		`^(\w) ← (\w) \* (\w)$`,
 		func(ctx context.Context, dest, name1, name2 string) (context.Context, error) {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
 				return ctx, fmt.Errorf("no matrix named %s found", name1)
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
 				return ctx, fmt.Errorf("no matrix named %s found", name2)
 			}
 			matrix, err := matrix1.MultiplyMatrix(matrix2)
 			if err != nil {
 				return ctx, fmt.Errorf("cannot multiply %s by %s", matrix1, matrix2)
 			}
-			return context.WithValue(ctx, matrixKey{dest}, matrix), nil
+			return setMatrix(ctx, dest, matrix), nil
 		})
 
 	sc.When(
 		`^(\w+) ← (\w) \* (\w+)$`,
 		func(ctx context.Context, dest string, name1 string, name2 string) (context.Context, error) {
-			matrix, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", name1)
+			matrix, err := getMatrix(ctx, name1)
+			if err != nil {
+				return ctx, err
 			}
-			tuple, ok := ctx.Value(tupleKey{name2}).(*rt.Tuple)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", name2)
+			tuple, err := getTuple(ctx, name2)
+			if err != nil {
+				return ctx, err
 			}
-			tuple, err := matrix.MultiplyTuple(tuple)
+
+			tuple, err = matrix.MultiplyTuple(tuple)
 			if err != nil {
 				return ctx, fmt.Errorf("cannot multiply %s by %s", matrix, tuple)
 			}
-			return context.WithValue(ctx, tupleKey{dest}, tuple), nil
+			return setTuple(ctx, dest, tuple), nil
 		})
 
 	sc.Then(
 		`^(\w)\[(\d+),(\d+)\] = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, row int, col int, expect float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			value := matrix.Get(row, col)
 			if value != expect {
 				return fmt.Errorf("expected %d,%d in %s to be %f but was %f", row, col, matrix, expect, value)
@@ -140,10 +143,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w)\[(\d+),(\d+)\] = (\-?\d+\.?\d*)/(\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, row int, col int, numer, denom float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			expect := numer / denom
 			value := matrix.Get(row, col)
 			if value != expect {
@@ -151,32 +155,15 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 			}
 			return nil
 		})
-
-	sc.Then(
-		`^(\w) = (\w)$`,
-		func(ctx context.Context, name1 string, name2 string) error {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name1)
-			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name2)
-			}
-			if !matrix1.Equal(matrix2) {
-				return fmt.Errorf("expected %s to equal %s", matrix1, matrix2)
-			}
-			return nil
-		})
 	sc.Then(
 		`^(\w) != (\w)$`,
 		func(ctx context.Context, name1 string, name2 string) error {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
 				return fmt.Errorf("no matrix named %s found", name1)
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
 				return fmt.Errorf("no matrix named %s found", name2)
 			}
 			if matrix1.Equal(matrix2) {
@@ -188,10 +175,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^determinant\((\w+)\) = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, value float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			determinant := matrix.Determinant()
 			if determinant != value {
 				return fmt.Errorf("expected %f got %f", value, determinant)
@@ -201,10 +189,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^cofactor\((\w+), (\d+), (\d+)\) = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, row int, col int, value float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			cofactor := matrix.Cofactor(row, col)
 			if cofactor != value {
 				return fmt.Errorf("expected %f got %f", value, cofactor)
@@ -214,10 +203,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^minor\((\w+), (\d+), (\d+)\) = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, row int, col int, value float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			minor := matrix.Minor(row, col)
 			if minor != value {
 				return fmt.Errorf("expected %f got %f", value, minor)
@@ -228,10 +218,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) is invertible$`,
 		func(ctx context.Context, name string) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if !matrix.IsInvertible() {
 				return fmt.Errorf("expected %s to be invertible but it is not", matrix)
 			}
@@ -240,10 +231,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) is not invertible$`,
 		func(ctx context.Context, name string) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if matrix.IsInvertible() {
 				return fmt.Errorf("expected %s to not be invertible but it is", matrix)
 			}
@@ -253,10 +245,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) is the following (\d+)x(\d+) matrix:$`,
 		func(ctx context.Context, name string, rows int, cols int, table *godog.Table) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			expect, err := buildNByNMatrix(rows, table)
 			if err != nil {
 				return fmt.Errorf("failed to build matrix from table")
@@ -269,10 +262,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^submatrix\((\w+), (\d+), (\d+)\) is the following (\d+)x(\d+) matrix:$`,
 		func(ctx context.Context, name string, row int, col int, rows int, cols int, table *godog.Table) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			expect, err := buildNByNMatrix(rows, table)
 			if err != nil {
 				return fmt.Errorf("failed to build matrix from table")
@@ -286,11 +280,12 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^inverse\((\w+)\) is the following (\d+)x(\d+) matrix:$`,
 		func(ctx context.Context, name string, rows int, cols int, table *godog.Table) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
-			matrix, err := matrix.Inverse()
+
+			matrix, err = matrix.Inverse()
 			if err != nil {
 				return fmt.Errorf("expected %s to be invertible but it was not", matrix)
 			}
@@ -306,14 +301,15 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) \* (\w) is the following (\d+)x(\d+) matrix:$`,
 		func(ctx context.Context, name1, name2 string, rows int, cols int, table *godog.Table) error {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name1)
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
+				return err
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name2)
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			expect, err := buildNByNMatrix(rows, table)
 			if err != nil {
 				return fmt.Errorf("failed to build matrix from table")
@@ -330,10 +326,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^transpose\((\w+)\) is the following matrix:$`,
 		func(ctx context.Context, name string, table *godog.Table) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			matrix = matrix.Transpose()
 			expect, err := buildNByNMatrix(4, table)
 			if err != nil {
@@ -348,19 +345,20 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) \* inverse\((\w)\) = (\w)$`,
 		func(ctx context.Context, name1 string, name2 string, name3 string) error {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name1)
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
+				return err
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name2)
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
+				return err
 			}
-			matrix3, ok := ctx.Value(matrixKey{name3}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name3)
+			matrix3, err := getMatrix(ctx, name3)
+			if err != nil {
+				return err
 			}
-			matrix2, err := matrix2.Inverse()
+
+			matrix2, err = matrix2.Inverse()
 			if err != nil {
 				return fmt.Errorf("matrix %s should be interible but it is not", matrix2)
 			}
@@ -377,15 +375,16 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) \* (\w) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, matrixName, tupleName string, x, y, z, w float64) error {
-			matrix, ok := ctx.Value(matrixKey{matrixName}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", matrixName)
+			matrix, err := getMatrix(ctx, matrixName)
+			if err != nil {
+				return err
 			}
-			tuple, ok := ctx.Value(tupleKey{tupleName}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", tupleName)
+			tuple, err := getTuple(ctx, tupleName)
+			if err != nil {
+				return err
 			}
-			tuple, err := matrix.MultiplyTuple(tuple)
+
+			tuple, err = matrix.MultiplyTuple(tuple)
 			if err != nil {
 				return fmt.Errorf("%s cannot be multiplied by %s", matrix, tuple)
 			}
@@ -398,15 +397,16 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \* (\w) = point\((\S+), (\S+), (\S+)\)$`,
 		func(ctx context.Context, matrixName, tupleName, x, y, z string) error {
-			matrix, ok := ctx.Value(matrixKey{matrixName}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", matrixName)
+			matrix, err := getMatrix(ctx, matrixName)
+			if err != nil {
+				return err
 			}
-			tuple, ok := ctx.Value(tupleKey{tupleName}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", tupleName)
+			tuple, err := getTuple(ctx, tupleName)
+			if err != nil {
+				return err
 			}
-			tuple, err := matrix.MultiplyTuple(tuple)
+
+			tuple, err = matrix.MultiplyTuple(tuple)
 			if err != nil {
 				return fmt.Errorf("%s cannot be multiplied by %s", matrix, tuple)
 			}
@@ -431,15 +431,16 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \* (\w) = vector\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, matrixName, tupleName string, x, y, z float64) error {
-			matrix, ok := ctx.Value(matrixKey{matrixName}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", matrixName)
+			matrix, err := getMatrix(ctx, matrixName)
+			if err != nil {
+				return err
 			}
-			tuple, ok := ctx.Value(tupleKey{tupleName}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", tupleName)
+			tuple, err := getTuple(ctx, tupleName)
+			if err != nil {
+				return err
 			}
-			tuple, err := matrix.MultiplyTuple(tuple)
+
+			tuple, err = matrix.MultiplyTuple(tuple)
 			if err != nil {
 				return fmt.Errorf("%s cannot be multiplied by %s", matrix, tuple)
 			}
@@ -453,14 +454,15 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) \* identity_matrix = (\w)$`,
 		func(ctx context.Context, name1, name2 string) error {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name1)
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
+				return err
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name2)
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			matrix, err := matrix1.MultiplyMatrix(rt.IdentityMatrix())
 			if err != nil {
 				return fmt.Errorf("%s cannot be multiplied by identity matrix", matrix1)
@@ -473,10 +475,11 @@ func InitializeMatrixScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) = identity_matrix$`,
 		func(ctx context.Context, name string) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			identity := rt.IdentityMatrix()
 			if !matrix.Equal(identity) {
 				return fmt.Errorf("expected %s to equal identity matrix", matrix)

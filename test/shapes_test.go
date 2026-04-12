@@ -3,9 +3,9 @@ package test
 import (
 	"context"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
-	"math"
 
 	"raytracer/pkg/rt"
 
@@ -52,7 +52,7 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 			shape.Transform = rt.Scaling(x, y, z)
 			return ctx, nil
 		})
-		
+
 	sc.Given(
 		`^set_transform\((\w+), rotation_y\(π/2\)\)$`,
 		func(ctx context.Context, target string) (context.Context, error) {
@@ -125,11 +125,15 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 		`^(\w+) ← world_to_object\((\w+), point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)\)$`,
 		func(ctx context.Context, dest, shapeName string, x, y, z float64) (context.Context, error) {
 			shape, err := getShape(ctx, shapeName)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			point := rt.NewPoint(x, y, z)
 			objectPoint, err := shape.WorldToObject(point)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			return setTuple(ctx, dest, objectPoint), nil
 		})
@@ -137,10 +141,14 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 		`^(\w) ← normal_to_world\((\w+), vector\(√3/3, √3/3, √3/3\)\)$`,
 		func(ctx context.Context, dest, source string) (context.Context, error) {
 			shape, err := getShape(ctx, source)
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			normal, err := shape.NormalToWorld(rt.NewVector(math.Sqrt(3)/3, math.Sqrt(3)/3, math.Sqrt(3)/3))
-			if err != nil {return ctx, err}
+			if err != nil {
+				return ctx, err
+			}
 
 			return setTuple(ctx, dest, normal), nil
 		})
@@ -181,7 +189,9 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 		`^(\w).parent is nothing$`,
 		func(ctx context.Context, dest string) error {
 			shape, err := getShape(ctx, dest)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 
 			if shape.Parent != nil {
 				return fmt.Errorf("expected parent to be nil, got %s", shape.Parent)
@@ -190,7 +200,7 @@ func InitializeShapesScenario(sc *godog.ScenarioContext) {
 		})
 }
 
-func (t TestShape) Equal(other rt.ShapeTrait) bool {
+func (t TestShape) Equal(other any) bool {
 	return reflect.TypeOf(t) == reflect.TypeOf(other)
 }
 
@@ -216,3 +226,5 @@ func (t TestShape) Bounds() *rt.BoundingBox {
 		rt.NewPoint(-1, -1, -1),
 		rt.NewPoint(1, 1, 1))
 }
+
+func (t TestShape) Includes(s, other *rt.Shape) bool { return s == other }

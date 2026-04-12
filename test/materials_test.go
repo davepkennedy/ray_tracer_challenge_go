@@ -9,14 +9,12 @@ import (
 	"github.com/cucumber/godog"
 )
 
-type materialKey struct{ Name string }
-
 func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 
 	sc.Given(
 		`^(\w) ← material\(\)$`,
 		func(ctx context.Context, dest string) context.Context {
-			return context.WithValue(ctx, materialKey{dest}, rt.NewMaterial())
+			return setMaterial(ctx, dest, rt.NewMaterial())
 		})
 
 	sc.Given(
@@ -35,29 +33,31 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w).ambient ← (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, val float64) (context.Context, error) {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return ctx, fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return ctx, err
 			}
+
 			material.Ambient = val
 			return ctx, nil
 		})
 	sc.Given(
 		`^(\w).diffuse ← (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, val float64) (context.Context, error) {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return ctx, fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return ctx, err
 			}
+
 			material.Diffuse = val
 			return ctx, nil
 		})
 	sc.Given(
 		`^(\w).specular ← (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, val float64) (context.Context, error) {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return ctx, fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return ctx, err
 			}
 			material.Specular = val
 			return ctx, nil
@@ -66,9 +66,9 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+).color = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, dest string, r, g, b float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
 			color := rt.NewColor(r, g, b)
 			if !material.Color.Equal(color) {
@@ -79,10 +79,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w+).ambient = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Ambient != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Ambient)
 			}
@@ -91,10 +92,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w+).diffuse = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Diffuse != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Diffuse)
 			}
@@ -103,10 +105,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w+).specular = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Specular != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Specular)
 			}
@@ -115,10 +118,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+).shininess = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Shininess != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Shininess)
 			}
@@ -127,10 +131,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).reflective = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Reflective != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Reflective)
 			}
@@ -139,10 +144,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).transparency = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.Transparency != f {
 				return fmt.Errorf("expected %f, got %f", f, material.Transparency)
 			}
@@ -151,10 +157,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).refractive_index = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, dest string, f float64) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			if material.RefractiveIndex != f {
 				return fmt.Errorf("expected %f, got %f", f, material.RefractiveIndex)
 			}
@@ -164,10 +171,11 @@ func InitializeMaterialsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w+) = material\(\)`,
 		func(ctx context.Context, dest string) error {
-			material, ok := ctx.Value(materialKey{dest}).(*rt.Material)
-			if !ok {
-				return fmt.Errorf("no material named %s found", dest)
+			material, err := getMaterial(ctx, dest)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewMaterial()
 			if !material.Equal(expect) {
 				return fmt.Errorf("expected %s, got %s", expect, material)

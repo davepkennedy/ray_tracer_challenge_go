@@ -21,7 +21,10 @@ func (t *SmoothTriangle) String() string {
 	return "smmothtriangle{}"
 }
 
-func (t *SmoothTriangle) Equal (other ShapeTrait) bool {
+func (t *SmoothTriangle) Includes (s, other *Shape) bool{
+	return s == other
+}
+func (t *SmoothTriangle) Equal (other any) bool {
 	ot, ok := other.(*SmoothTriangle)
 	if !ok {return false}
 

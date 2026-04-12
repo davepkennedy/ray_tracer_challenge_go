@@ -48,33 +48,33 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← translation\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.Translation(x, y, z))
+			return setMatrix(ctx, name, rt.Translation(x, y, z))
 		})
 	sc.Given(
 		`^(\w+) ← scaling\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.Scaling(x, y, z))
+			return setMatrix(ctx, name, rt.Scaling(x, y, z))
 		})
 	sc.Given(
 		`^(\w+) ← shearing\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, xy, xz, yx, yz, zx, zy float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.Shearing(xy, xz, yx, yz, zx, zy))
+			return setMatrix(ctx, name, rt.Shearing(xy, xz, yx, yz, zx, zy))
 		})
 
 	sc.Given(
 		`^(\w+) ← rotation_x\(π / (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, f float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.RotationX(math.Pi/f))
+			return setMatrix(ctx, name, rt.RotationX(math.Pi/f))
 		})
 	sc.Given(
 		`^(\w+) ← rotation_y\(π / (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, f float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.RotationY(math.Pi/f))
+			return setMatrix(ctx, name, rt.RotationY(math.Pi/f))
 		})
 	sc.Given(
 		`^(\w+) ← rotation_z\(π / (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, f float64) context.Context {
-			return context.WithValue(ctx, matrixKey{name}, rt.RotationZ(math.Pi/f))
+			return setMatrix(ctx, name, rt.RotationZ(math.Pi/f))
 		})
 	sc.Given(
 		`^m ← scaling\(1, 0.5, 1\) \* rotation_z\(π/5\)`,
@@ -85,7 +85,7 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 			if err != nil {
 				return ctx, err
 			}
-			return context.WithValue(ctx, matrixKey{"m"}, m), nil
+			return setMatrix(ctx, "m", m), nil
 		})
 	sc.Given(
 		`^(\w+) is added to (\w+)$`,
@@ -106,19 +106,21 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 	sc.When(
 		`^(\w+) ← transform\((\w+), (\w+)\)$`,
 		func(ctx context.Context, destName, rayName, matrixName string) (context.Context, error) {
-			ray, ok := ctx.Value(rayKey{rayName}).(*rt.Ray)
-			if !ok {
-				return ctx, fmt.Errorf("no ray named %s found", rayName)
+			ray, err := getRay(ctx, rayName)
+			if err != nil {
+				return ctx, err
 			}
-			matrix, ok := ctx.Value(matrixKey{matrixName}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s found", matrixName)
+
+			matrix, err := getMatrix(ctx, matrixName)
+			if err != nil {
+				return ctx, err
 			}
-			ray, err := ray.Transform(matrix)
+
+			ray, err = ray.Transform(matrix)
 			if err != nil {
 				return ctx, fmt.Errorf("Could not transform ray: %w", err)
 			}
-			return context.WithValue(ctx, rayKey{destName}, ray), nil
+			return setRay(ctx, destName, ray), nil
 		})
 
 	sc.When(
@@ -147,18 +149,19 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 	sc.When(
 		`(\w) ← (\w) \* (\w) \* (\w)$`,
 		func(ctx context.Context, dest, name1, name2, name3 string) (context.Context, error) {
-			matrix1, ok := ctx.Value(matrixKey{name1}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s, found", name1)
+			matrix1, err := getMatrix(ctx, name1)
+			if err != nil {
+				return ctx, err
 			}
-			matrix2, ok := ctx.Value(matrixKey{name2}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s, found", name2)
+			matrix2, err := getMatrix(ctx, name2)
+			if err != nil {
+				return ctx, err
 			}
-			matrix3, ok := ctx.Value(matrixKey{name3}).(*rt.Matrix)
-			if !ok {
-				return ctx, fmt.Errorf("no matrix named %s, found", name3)
+			matrix3, err := getMatrix(ctx, name3)
+			if err != nil {
+				return ctx, err
 			}
+
 			matrix, err := matrix1.MultiplyMatrix(matrix2)
 			if err != nil {
 				return ctx, fmt.Errorf("cannot multiply %s by %s", matrix1, matrix2)
@@ -167,16 +170,17 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 			if err != nil {
 				return ctx, fmt.Errorf("cannot multiply %s by %s", matrix, matrix3)
 			}
-			return context.WithValue(ctx, matrixKey{dest}, matrix), nil
+			return setMatrix(ctx, dest, matrix), nil
 		})
 
 	sc.Then(
 		`^(\w) = translation\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			t := rt.Translation(x, y, z)
 			if !matrix.Equal(t) {
 				return fmt.Errorf("expected %s to equal %s, but it did not", matrix, t)
@@ -186,10 +190,11 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) = scaling\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) error {
-			matrix, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-			if !ok {
-				return fmt.Errorf("no matrix named %s found", name)
+			matrix, err := getMatrix(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			t := rt.Scaling(x, y, z)
 			if !matrix.Equal(t) {
 				return fmt.Errorf("expected %s to equal %s, but it did not", matrix, t)
@@ -199,7 +204,19 @@ func InitializeTransformationScenario(sc *godog.ScenarioContext) {
 
 	sc.Then(
 		`^(\w+) \* (\w) = (\w)$`,
-		func(ctx context.Context, name1, name2, name3 string) error {
+		func(ctx context.Context, matrixName, tupleName string) error {
+			matrix, err := getMatrix(ctx, matrixName)
+			if err != nil {return err}
+
+			tuple, err := getTuple(ctx, tupleName)
+			if err != nil {return err}
+			
+			result, err := matrix.MultiplyTuple(tuple)
+			if err != nil {return nil}
+
+			if !result.Equal(tuple) {
+				return fmt.Errorf("expected %s, got %s", tuple, result)
+			}
 			return nil
 		})
 }

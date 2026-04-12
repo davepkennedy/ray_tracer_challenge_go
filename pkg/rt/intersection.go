@@ -7,6 +7,11 @@ import (
 	"sort"
 )
 
+
+var (
+	_ Equality = (*Intersection)(nil)
+)
+
 type Intersection struct {
 	T      	float64
 	Object 	*Shape
@@ -45,8 +50,10 @@ func filter(i []*Intersection) []*Intersection {
 	return c
 }
 
-func (i *Intersection) Equal(other *Intersection) bool {
-	return i.Object.Equal(other.Object) && i.T == other.T
+func (i *Intersection) Equal(other any) bool {
+	oi, ok := other.(*Intersection)
+	if !ok {return false}
+	return i.Object.Equal(oi.Object) && i.T == oi.T
 }
 
 func (i *Intersection) String() string {

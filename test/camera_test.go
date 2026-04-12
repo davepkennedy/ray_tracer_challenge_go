@@ -27,6 +27,24 @@ func InitializeCameraScenario(sc *godog.ScenarioContext) {
 			c := rt.NewCamera(h, v, math.Pi/2.0)
 			return setCamera(ctx, dest, c)
 		})
+	sc.Given(
+		`^(\w+).transform ← view_transform\((\w+), (\w+), (\w+)\)$`,
+		func (ctx context.Context, dest, name1, name2, name3 string) (context.Context, error) {
+			from, err := getTuple(ctx, name1)
+			if err != nil {return ctx, err}
+			to, err := getTuple(ctx, name2)
+			if err != nil {return ctx, err}
+			up, err := getTuple(ctx, name3)
+			if err != nil {return ctx, err}
+			camera, err := getCamera(ctx, dest)
+			if err != nil {return ctx, err}
+
+			transform, err := rt.ViewTransformation(from, to, up)
+			if err != nil {return ctx, err}
+
+			camera.Transform = transform
+			return ctx, nil
+		})
 
 	sc.When(
 		`^(\w+) ← camera\((\w+), (\w+), (\w+)\)$`,
@@ -61,6 +79,36 @@ func InitializeCameraScenario(sc *godog.ScenarioContext) {
 			}
 
 			return setRay(ctx, dest, ray), nil
+		})
+	sc.When(
+		`^(\w+).transform ← rotation_y\(π\/4\) \* translation\(0, -2, 5\)$`,
+		func (ctx context.Context, source string) (context.Context, error) {
+			camera, err := getCamera(ctx, source)
+			if err != nil {
+				return ctx, err
+			}
+			transform, err := rt.RotationY(math.Pi/4.0).MultiplyMatrix(rt.Translation(0, -2, 5))
+			if err != nil {return ctx, err}
+
+			camera.Transform = transform
+			return ctx, nil
+		})
+	sc.When(
+		`^(\w+) ← render\((\w), (\w)\)$`,
+		func (ctx context.Context, dest, cameraName, worldName string) (context.Context, error) {
+			camera, err := getCamera(ctx, cameraName)
+			if err != nil {
+				return ctx, err
+			}
+
+			world, err := getWorld(ctx, worldName)
+			if err != nil {
+				return ctx, err
+			}
+			image, err := camera.Render(world)
+			if err != nil {return ctx, err}
+
+			return setCanvas(ctx, dest, image), nil
 		})
 
 	sc.Then(

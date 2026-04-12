@@ -13,7 +13,7 @@ func NewGroup() *Shape {
 	return NewShape(&Group{})
 }
 
-func (g *Group) Equal(other ShapeTrait) bool {
+func (g *Group) Equal(other any) bool {
 	otherGroup, ok := other.(*Group)
 	if !ok {return false}
 
@@ -32,6 +32,14 @@ func (g *Group) Equal(other ShapeTrait) bool {
 
 func (g *Group) String() string {
 	return "group{}"
+}
+
+func (g *Group) Includes (s, other *Shape) bool{
+	if s == other {
+		return true
+	}
+
+	return g.Contains(other)
 }
 
 func (g *Group) Intersect(s* Shape, ray *Ray) *Intersections {

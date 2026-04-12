@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+var (
+	_ Equality = (*Matrix)(nil)
+)
+
 type Matrix struct {
 	dim  int
 	data []float64
@@ -182,6 +186,9 @@ func (m *Matrix) equalData(other *Matrix) bool {
 	return true
 }
 
-func (m *Matrix) Equal(other *Matrix) bool {
-	return m.equalDim(other) && m.equalData(other)
+func (m *Matrix) Equal(other any) bool {
+	om, ok := other.(*Matrix)
+	if !ok {return false}
+
+	return m.equalDim(om) && m.equalData(om)
 }

@@ -48,4 +48,5 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	InitializeTrianglesScenario(ctx)
 	InitializeObjFileScenario(ctx)
 	InitializeSmoothTrianglesScenario(ctx)
+	InitializeCSGScenario(ctx)
 }

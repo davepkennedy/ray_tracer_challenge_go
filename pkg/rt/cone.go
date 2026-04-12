@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+var (
+	_ Equality = (*Cone)(nil) 
+)
+
 func NewCone() *Shape {
 	return NewShape(&Cone{
 		Capped: NewCapped(),
@@ -15,12 +19,16 @@ type Cone struct {
 	Capped
 }
 
-func (c *Cone) Equal(other ShapeTrait) bool {
+func (c *Cone) Equal(other any) bool {
 	return reflect.TypeOf(c) == reflect.TypeOf(other)
 }
 
 func (c *Cone) String() string {
 	return "cone{}"
+}
+
+func (c *Cone) Includes (s, other *Shape) bool{
+	return s == other
 }
 
 func (cone *Cone) Intersect(s *Shape, ray *Ray) *Intersections {

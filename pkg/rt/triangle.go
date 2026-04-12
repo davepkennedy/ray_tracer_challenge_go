@@ -29,7 +29,11 @@ func (t *Triangle) LocalIntersect(ray Ray) Intersections {
 	return Intersections{}
 }
 
-func (t *Triangle) Equal(other ShapeTrait) bool {
+func (t *Triangle) Includes (s, other *Shape) bool{
+	return s == other
+}
+
+func (t *Triangle) Equal(other any) bool {
 	ot, ok := other.(*Triangle)
 	if !ok {return false}
 

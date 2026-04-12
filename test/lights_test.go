@@ -9,8 +9,6 @@ import (
 	"github.com/cucumber/godog"
 )
 
-type lightKey struct{ Name string }
-
 func setLighting(ctx context.Context, dest, materialName, lightName, positionName, eyeName, normalName string, inShadow bool) (context.Context, error) {
 	material, err := getMaterial(ctx, materialName)
 	if err != nil {
@@ -37,7 +35,7 @@ func setLighting(ctx context.Context, dest, materialName, lightName, positionNam
 	if err != nil {
 		return ctx, err
 	}
-	return context.WithValue(ctx, colorKey{dest}, color), nil
+	return setColor(ctx, dest, color), nil
 }
 
 func InitializeLightsScenario(sc *godog.ScenarioContext) {
@@ -47,7 +45,7 @@ func InitializeLightsScenario(sc *godog.ScenarioContext) {
 		func(ctx context.Context, dest string, x, y, z, r, g, b float64) (context.Context, error) {
 			tuple := rt.NewPoint(x, y, z)
 			color := rt.NewColor(r, g, b)
-			return context.WithValue(ctx, lightKey{dest}, rt.NewPointLight(tuple, color)), nil
+			return setLight(ctx, dest, rt.NewPointLight(tuple, color)), nil
 		})
 	sc.Given(
 		`^(\w+) ← (true|false)$`,
@@ -58,15 +56,17 @@ func InitializeLightsScenario(sc *godog.ScenarioContext) {
 	sc.When(
 		`^(\w+) ← point_light\((\w+), (\w+)\)$`,
 		func(ctx context.Context, dest, position, intensity string) (context.Context, error) {
-			tuple, ok := ctx.Value(tupleKey{position}).(*rt.Tuple)
-			if !ok {
-				return ctx, fmt.Errorf("no tuple named %s found", position)
+			tuple, err := getTuple(ctx, position)
+			if err != nil {
+				return ctx, err
 			}
-			color, ok := ctx.Value(colorKey{intensity}).(*rt.Color)
-			if !ok {
-				return ctx, fmt.Errorf("no color named %s found", intensity)
+
+			color, err := getColor(ctx, intensity)
+			if err != nil {
+				return ctx, err
 			}
-			return context.WithValue(ctx, lightKey{dest}, rt.NewPointLight(tuple, color)), nil
+
+			return setLight(ctx, dest, rt.NewPointLight(tuple, color)), nil
 		})
 	sc.When(`^(\w+) ← lighting\((\w+), (\w+), (\w+), (\w+), (\w+)\)$`,
 		func(ctx context.Context, dest, materialName, lightName, positionName, eyeName, normalName string) (context.Context, error) {
@@ -91,14 +91,16 @@ func InitializeLightsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+).position = (\w+)$`,
 		func(ctx context.Context, dest, position string) error {
-			light, ok := ctx.Value(lightKey{dest}).(*rt.Light)
-			if !ok {
-				return fmt.Errorf("no light named %s found", dest)
+			light, err := getLight(ctx, dest)
+			if err != nil {
+				return err
 			}
-			tuple, ok := ctx.Value(tupleKey{position}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", position)
+
+			tuple, err := getTuple(ctx, position)
+			if err != nil {
+				return err
 			}
+
 			if !light.Position.Equal(tuple) {
 				return fmt.Errorf("expected %s, got %s", tuple, light.Position)
 			}
@@ -107,14 +109,16 @@ func InitializeLightsScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+).intensity = (\w+)$`,
 		func(ctx context.Context, dest, intensity string) error {
-			light, ok := ctx.Value(lightKey{dest}).(*rt.Light)
-			if !ok {
-				return fmt.Errorf("no light named %s found", dest)
+			light, err := getLight(ctx, dest)
+			if err != nil {
+				return err
 			}
-			color, ok := ctx.Value(colorKey{intensity}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", intensity)
+
+			color, err := getColor(ctx, intensity)
+			if err != nil {
+				return err
 			}
+
 			if !light.Intensity.Equal(color) {
 				return fmt.Errorf("expected %s, got %s", color, light.Position)
 			}

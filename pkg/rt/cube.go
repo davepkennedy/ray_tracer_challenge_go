@@ -42,12 +42,16 @@ func NewCube() *Shape {
 	return NewShape(&Cube{})
 }
 
-func (c *Cube) Equal(other ShapeTrait) bool {
+func (c *Cube) Equal(other any) bool {
 	return reflect.TypeOf(c) == reflect.TypeOf(other)
 }
 
 func (s *Cube) String() string {
 	return "cube{}"
+}
+
+func (c *Cube) Includes (s, other *Shape) bool{
+	return s == other
 }
 
 func checkAxis(origin, direction float64) (float64, float64) {

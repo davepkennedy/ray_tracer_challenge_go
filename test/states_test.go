@@ -1,230 +1,90 @@
 package test
 
 import (
+	"reflect"
 	"context"
 	"fmt"
+
 	"raytracer/pkg/rt"
 )
 
-type boolKey struct{ Name string }
-type worldKey struct{ Name string }
-type compsKey struct{ Name string }
-type intKey struct{ Name string }
-type floatKey struct{ Name string }
-type cameraKey struct{ Name string }
-type shapeKey struct{ Name string }
-type patternKey struct{ Name string }
-type objFileKey struct{ Name string }
-type groupKey struct { Name string }
+type TestState = context.Context
 
-func getBoolean(ctx context.Context, name string) (bool, error) {
-	val, ok := ctx.Value(boolKey{name}).(bool)
-	if !ok {
-		return false, fmt.Errorf("no bool named %s found", name)
-	}
-	return val, nil
-}
-func setBoolean(ctx context.Context, name string, val bool) context.Context {
-	return context.WithValue(ctx, boolKey{name}, val)
-}
+type valueKey[T any] struct{ name string }
 
-func getCamera(ctx context.Context, name string) (*rt.Camera, error) {
-	val, ok := ctx.Value(cameraKey{name}).(*rt.Camera)
+func getValue[T any](state TestState, name string) (T, error) {
+	a := state.Value(name)
+	val, ok := a.(T)
 	if !ok {
-		return nil, fmt.Errorf("no camera named %s found", name)
+		if a != nil {
+			return val, fmt.Errorf("no %s named %s in state; did find %s (%s)",
+			 	reflect.TypeFor[T](), name, a, reflect.TypeOf(a))	
+		}
+		return val, fmt.Errorf("no %s named %s in state", reflect.TypeFor[T](), name)
 	}
 	return val, nil
 }
 
-func setCamera(ctx context.Context, name string, camera *rt.Camera) context.Context {
-	return context.WithValue(ctx, cameraKey{name}, camera)
+func setValue[T any](state TestState, name string, value T) TestState {
+	state = context.WithValue(state, name, value)
+	return state
 }
 
-func getCanvas(ctx context.Context, name string) (*rt.Canvas, error) {
-	val, ok := ctx.Value(canvasKey{name}).(*rt.Canvas)
-	if !ok {
-		return nil, fmt.Errorf("no canvas named %s found", name)
-	}
-	return val, nil
-}
+var (
+	getBoolean = getValue[bool]
+	setBoolean = setValue[bool]
 
-func getColor(ctx context.Context, name string) (*rt.Color, error) {
-	val, ok := ctx.Value(colorKey{name}).(*rt.Color)
-	if !ok {
-		return nil, fmt.Errorf("no color named %s found", name)
-	}
-	return val, nil
-}
+	getCamera = getValue[*rt.Camera]
+	setCamera = setValue[*rt.Camera]
 
-func setColor(ctx context.Context, name string, color *rt.Color) context.Context {
-	return context.WithValue(ctx, colorKey{name}, color)
-}
+	getCanvas = getValue[*rt.Canvas]
+	setCanvas = setValue[*rt.Canvas]
 
-func getComps(ctx context.Context, name string) (*rt.Computations, error) {
-	val, ok := ctx.Value(compsKey{name}).(*rt.Computations)
-	if !ok {
-		return nil, fmt.Errorf("no computations name %s found", name)
-	}
-	return val, nil
-}
+	getColor = getValue[*rt.Color]
+	setColor = setValue[*rt.Color]
 
-func setComps(ctx context.Context, name string, comps *rt.Computations) context.Context {
-	return context.WithValue(ctx, compsKey{name}, comps)
-}
+	getComps = getValue[*rt.Computations]
+	setComps = setValue[*rt.Computations]
 
-func getFloat(ctx context.Context, name string) (float64, error) {
-	val, ok := ctx.Value(floatKey{name}).(float64)
-	if !ok {
-		return 0, fmt.Errorf("no float named %s found", name)
-	}
-	return val, nil
-}
+	getFloat = getValue[float64]
+	setFloat = setValue[float64]
 
-func setFloat(ctx context.Context, name string, val float64) context.Context {
-	return context.WithValue(ctx, floatKey{name}, val)
-}
+	getInt = getValue[int]
+	setInt = setValue[int]
 
-func getInt(ctx context.Context, name string) (int, error) {
-	val, ok := ctx.Value(intKey{name}).(int)
-	if !ok {
-		return 0, fmt.Errorf("no int named %s found", name)
-	}
-	return val, nil
-}
+	getIntersection = getValue[*rt.Intersection]
+	setIntersection = setValue[*rt.Intersection]
 
-func setInt(ctx context.Context, name string, val int) context.Context {
-	return context.WithValue(ctx, intKey{name}, val)
-}
+	getIntersections = getValue[*rt.Intersections]
+	setIntersections = setValue[*rt.Intersections]
 
-func getIntersection(ctx context.Context, name string) (*rt.Intersection, error) {
-	val, ok := ctx.Value(intersectionKey{name}).(*rt.Intersection)
-	if !ok {
-		return nil, fmt.Errorf("no intersection named %s found", name)
-	}
-	return val, nil
-}
-func setIntersection (ctx context.Context, name string, val *rt.Intersection) context.Context{
-	return context.WithValue(ctx, intersectionKey{name}, val)
-}
+	getLight = getValue[*rt.Light]
+	setLight = setValue[*rt.Light]
 
-func getIntersections(ctx context.Context, name string) (*rt.Intersections, error) {
-	val, ok := ctx.Value(intersectionsKey{name}).(*rt.Intersections)
-	if !ok {
-		return nil, fmt.Errorf("no intersections named %s found", name)
-	}
-	return val, nil
-}
+	getMaterial = getValue[*rt.Material]
+	setMaterial = setValue[*rt.Material]
 
-func setIntersections(ctx context.Context, name string, xs *rt.Intersections) context.Context {
-	return context.WithValue(ctx, intersectionsKey{name}, xs)
-}
+	getMatrix = getValue[*rt.Matrix]
+	setMatrix = setValue[*rt.Matrix]
 
-func getLight(ctx context.Context, name string) (*rt.Light, error) {
-	val, ok := ctx.Value(lightKey{name}).(*rt.Light)
-	if !ok {
-		return nil, fmt.Errorf("no light named %s found", name)
-	}
-	return val, nil
-}
+	getObjFile = getValue[*rt.ObjFile]
+	setObjFile = setValue[*rt.ObjFile]
 
-func getMaterial(ctx context.Context, name string) (*rt.Material, error) {
-	val, ok := ctx.Value(materialKey{name}).(*rt.Material)
-	if !ok {
-		return nil, fmt.Errorf("no material named %s found", name)
-	}
-	return val, nil
-}
+	getPattern = getValue[*rt.Pattern]
+	setPattern = setValue[*rt.Pattern]
 
-func getMatrix(ctx context.Context, name string) (*rt.Matrix, error) {
-	val, ok := ctx.Value(matrixKey{name}).(*rt.Matrix)
-	if !ok {
-		return nil, fmt.Errorf("no matrix named %s found", name)
-	}
-	return val, nil
-}
+	getRay = getValue[*rt.Ray]
+	setRay = setValue[*rt.Ray]
 
-func setMatrix(ctx context.Context, name string, matrix *rt.Matrix) context.Context {
-	return context.WithValue(ctx, matrixKey{name}, matrix)
-}
+	getShape = getValue[*rt.Shape]
+	setShape = setValue[*rt.Shape]
 
-func getObjFile(ctx context.Context, name string) (*rt.ObjFile, error) {
-	val, ok := ctx.Value(objFileKey{name}).(*rt.ObjFile)
-	if !ok {
-		return nil, fmt.Errorf("no obj file named %s found", name)
-	}
-	return val, nil
-}
+	getString = getValue[string]
+	setString = setValue[string]
 
-func setObjFile(ctx context.Context, name string, objFile *rt.ObjFile) context.Context {
-	return context.WithValue(ctx, objFileKey{name}, objFile)
-}
+	getTuple = getValue[*rt.Tuple]
+	setTuple = setValue[*rt.Tuple]
 
-func getPattern(ctx context.Context, name string) (*rt.Pattern, error) {
-	val, ok := ctx.Value(patternKey{name}).(*rt.Pattern)
-	if !ok {
-		return nil, fmt.Errorf("no pattern named %s found", name)
-	}
-	return val, nil
-}
-
-func setPattern(ctx context.Context, name string, pattern *rt.Pattern) context.Context {
-	return context.WithValue(ctx, patternKey{name}, pattern)
-}
-
-func getRay(ctx context.Context, name string) (*rt.Ray, error) {
-	val, ok := ctx.Value(rayKey{name}).(*rt.Ray)
-	if !ok {
-		return nil, fmt.Errorf("no ray named %s found", name)
-	}
-	return val, nil
-}
-
-func setRay(ctx context.Context, name string, ray *rt.Ray) context.Context {
-	return context.WithValue(ctx, rayKey{name}, ray)
-}
-
-func getShape(ctx context.Context, name string) (*rt.Shape, error) {
-	val, ok := ctx.Value(shapeKey{name}).(*rt.Shape)
-	if !ok {
-		return nil, fmt.Errorf("no shape named %s found", name)
-	}
-	return val, nil
-}
-func setShape(ctx context.Context, name string, shape *rt.Shape) context.Context {
-	return context.WithValue(ctx, shapeKey{name}, shape)
-}
-
-func getString(ctx context.Context, name string) (string, error) {
-	val, ok := ctx.Value(stringKey{name}).(string)
-	if !ok {
-		return "", fmt.Errorf("no string named %s found", name)
-	}
-	return val, nil
-}
-func setString (ctx context.Context, name string, val string) context.Context {
-	return context.WithValue(ctx, stringKey{name}, val)
-}
-
-func getTuple(ctx context.Context, name string) (*rt.Tuple, error) {
-	val, ok := ctx.Value(tupleKey{name}).(*rt.Tuple)
-	if !ok {
-		return nil, fmt.Errorf("no tuple named %s found", name)
-	}
-	return val, nil
-}
-
-func setTuple(ctx context.Context, name string, t *rt.Tuple) context.Context {
-	return context.WithValue(ctx, tupleKey{name}, t)
-}
-
-func getWorld(ctx context.Context, name string) (*rt.World, error) {
-	val, ok := ctx.Value(worldKey{name}).(*rt.World)
-	if !ok {
-		return nil, fmt.Errorf("no world named %s found", name)
-	}
-	return val, nil
-}
-
-func setWorld(ctx context.Context, name string, world *rt.World) context.Context {
-	return context.WithValue(ctx, worldKey{name}, world)
-}
+	getWorld = getValue[*rt.World]
+	setWorld = setValue[*rt.World]
+)

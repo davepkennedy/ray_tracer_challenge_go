@@ -5,6 +5,11 @@ import (
 	"math"
 )
 
+var (
+	_ Equality = (*Tuple)(nil)
+	_ Equality = (*Color)(nil)
+)
+
 type Tuple struct {
 	X, Y, Z, W float64
 }
@@ -45,17 +50,23 @@ func NewColor(r, g, b float64) *Color {
 	return &Color{Red: r, Green: g, Blue: b}
 }
 
-func (t *Tuple) Equal(other *Tuple) bool {
-	return math.Abs(t.X-other.X) < EPSILON &&
-		math.Abs(t.Y-other.Y) < EPSILON &&
-		math.Abs(t.Z-other.Z) < EPSILON &&
-		math.Abs(t.W-other.W) < EPSILON
+func (t *Tuple) Equal(other any) bool {
+	ot, ok := other.(*Tuple)
+	if !ok {return false}
+
+	return math.Abs(t.X-ot.X) < EPSILON &&
+		math.Abs(t.Y-ot.Y) < EPSILON &&
+		math.Abs(t.Z-ot.Z) < EPSILON &&
+		math.Abs(t.W-ot.W) < EPSILON
 }
 
-func (c *Color) Equal(other *Color) bool {
-	return math.Abs(c.Red-other.Red) < EPSILON &&
-		math.Abs(c.Green-other.Green) < EPSILON &&
-		math.Abs(c.Blue-other.Blue) < EPSILON
+func (c *Color) Equal(other any) bool {
+	oc, ok := other.(*Color)
+	if !ok {return false}
+
+	return math.Abs(c.Red-oc.Red) < EPSILON &&
+		math.Abs(c.Green-oc.Green) < EPSILON &&
+		math.Abs(c.Blue-oc.Blue) < EPSILON
 }
 
 func (t *Tuple) Negate() *Tuple {

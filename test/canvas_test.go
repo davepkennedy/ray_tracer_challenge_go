@@ -10,47 +10,46 @@ import (
 	"github.com/cucumber/godog"
 )
 
-type canvasKey struct{ Name string }
-type stringKey struct{ Name string }
-
 func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`(\w) ← canvas\((\d+), (\d+)\)`,
 		func(ctx context.Context, name string, width, height int) context.Context {
 			canvas := rt.NewCanvas(width, height)
-			return context.WithValue(ctx, canvasKey{name}, canvas)
+			return setCanvas(ctx, name, canvas)
 		})
 
 	sc.When(
-		`write_pixel\((\w+), (\d+), (\d+), (\w+)\)`,
+		`^write_pixel\((\w+), (\d+), (\d+), (\w+)\)$`,
 		func(ctx context.Context, dest string, x, y int, source string) (context.Context, error) {
-			canvas, ok := ctx.Value(canvasKey{dest}).(*rt.Canvas)
-			if !ok {
-				return ctx, fmt.Errorf("no canvas named %s found", dest)
+			canvas, err := getCanvas(ctx, dest)
+			if err != nil {
+				return ctx, err
 			}
-			color, ok := ctx.Value(colorKey{source}).(*rt.Color)
-			if !ok {
-				return ctx, fmt.Errorf("no color named %s found", source)
+
+			color, err := getColor(ctx, source)
+			if err != nil {
+				return ctx, err
 			}
+
 			canvas.SetPixelAt(x, y, color)
 			return ctx, nil
 		})
 	sc.When(
 		`(\w+) ← canvas_to_ppm\((\w+)\)`,
 		func(ctx context.Context, dest string, source string) (context.Context, error) {
-			canvas, ok := ctx.Value(canvasKey{source}).(*rt.Canvas)
-			if !ok {
-				return ctx, fmt.Errorf("no canvas named %s found", source)
+			canvas, err := getCanvas(ctx, source)
+			if err != nil {
+				return ctx, err
 			}
 			ppm := canvas.ToPPM()
-			return context.WithValue(ctx, stringKey{dest}, ppm), nil
+			return setString(ctx, dest, ppm), nil
 		})
 	sc.When(
 		`every pixel of (\w+) is set to color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)`,
 		func(ctx context.Context, dest string, red, green, blue float64) (context.Context, error) {
-			canvas, ok := ctx.Value(canvasKey{dest}).(*rt.Canvas)
-			if !ok {
-				return ctx, fmt.Errorf("no canvas named %s found", dest)
+			canvas, err := getCanvas(ctx, dest)
+			if err != nil {
+				return ctx, err
 			}
 
 			color := rt.NewColor(red, green, blue)
@@ -65,9 +64,9 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w).width = (\d+)`,
 		func(ctx context.Context, name string, width int) error {
-			canvas, ok := ctx.Value(canvasKey{name}).(*rt.Canvas)
-			if !ok {
-				return fmt.Errorf("no canvas named %s found", name)
+			canvas, err := getCanvas(ctx, name)
+			if err != nil {
+				return err
 			}
 			if width != canvas.Width {
 				return fmt.Errorf("expected width to be %d, was %d", width, canvas.Width)
@@ -77,10 +76,11 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w).height = (\d+)`,
 		func(ctx context.Context, name string, height int) error {
-			canvas, ok := ctx.Value(canvasKey{name}).(*rt.Canvas)
-			if !ok {
-				return fmt.Errorf("no canvas named %s found", name)
+			canvas, err := getCanvas(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if height != canvas.Height {
 				return fmt.Errorf("expected width to be %d, was %d", height, canvas.Height)
 			}
@@ -90,9 +90,9 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`every pixel of (\w+) is color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)`,
 		func(ctx context.Context, name string, red, green, blue float64) error {
-			canvas, ok := ctx.Value(canvasKey{name}).(*rt.Canvas)
-			if !ok {
-				return fmt.Errorf("canvas %s not found in context", name)
+			canvas, err := getCanvas(ctx, name)
+			if err != nil {
+				return err
 			}
 
 			expectedColor := rt.NewColor(red, green, blue)
@@ -105,16 +105,35 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 		})
 
 	sc.Then(
-		`pixel_at\((\w+), (\d+), (\d+)\) = (\w+)`,
+		`^pixel_at\((\w+), (\d+), (\d+)\) = (\w+)$`,
 		func(ctx context.Context, dest string, x, y int, source string) error {
-			canvas, ok := ctx.Value(canvasKey{dest}).(*rt.Canvas)
-			if !ok {
-				return fmt.Errorf("no canvas named %s found", dest)
+			canvas, err := getCanvas(ctx, dest)
+			if err != nil {
+				return err
 			}
-			expect, ok := ctx.Value(colorKey{source}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no color named %s found", source)
+
+			expect, err := getColor(ctx, source)
+			if err != nil {
+				return err
 			}
+
+			color := canvas.PixelAt(x, y)
+			if !color.Equal(expect) {
+				return fmt.Errorf("expected color at %d, %d to be %s, was %s", x, y, expect, color)
+			}
+			return nil
+		})
+
+	sc.Then(
+		`^pixel_at\((\w+), (\d+), (\d+)\) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
+		func(ctx context.Context, dest string, x, y int, r, g, b float64) error {
+			canvas, err := getCanvas(ctx, dest)
+			if err != nil {
+				return err
+			}
+
+			expect := rt.NewColor(r,g,b)
+
 			color := canvas.PixelAt(x, y)
 			if !color.Equal(expect) {
 				return fmt.Errorf("expected color at %d, %d to be %s, was %s", x, y, expect, color)
@@ -125,10 +144,11 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^lines (\d+)-(\d+) of (\w+) are$`,
 		func(ctx context.Context, startLine, endLine int, name string, docString *godog.DocString) error {
-			ppm, ok := ctx.Value(stringKey{name}).(string)
-			if !ok {
-				return fmt.Errorf("PPM string for %s not found in context", name)
+			ppm, err := getString(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			fmt.Printf("PPM output for %s:\n%s\n", name, ppm)
 			lines := strings.Split(ppm, "\n")
 			expectedLines := strings.Split(docString.Content, "\n")
@@ -149,10 +169,11 @@ func InitializeCanvasScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`(\w+) ends with a newline character`,
 		func(ctx context.Context, name string) error {
-			ppm, ok := ctx.Value(stringKey{name}).(string)
-			if !ok {
-				return fmt.Errorf("PPM string for %s not found in context", name)
+			ppm, err := getString(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if !strings.HasSuffix(ppm, "\n") {
 				return fmt.Errorf("PPM string for %s does not end with a newline character", name)
 			}

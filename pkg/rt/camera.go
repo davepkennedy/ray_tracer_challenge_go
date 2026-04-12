@@ -41,27 +41,21 @@ func NewCamera(hsize, vsize int, fov float64) *Camera {
 func (c *Camera) RayForPixel(px, py int) (*Ray, error) {
 	xoffset := (float64(px) + 0.5) * c.PixelSize
 	yoffset := (float64(py) + 0.5) * c.PixelSize
-
-	worldX := c.HalfWidth - xoffset
-	worldY := c.HalfHeight - yoffset
+        
+    worldX := c.HalfWidth - xoffset
+    worldY := c.HalfHeight - yoffset
 
 	inv, err := c.Transform.Inverse()
-	if err != nil {
-		return nil, err
-	}
+	if err != nil {return nil, err} 
+        
+    pixel, err := inv.MultiplyTuple(NewPoint(worldX, worldY, -1))
+	if err != nil {return nil, err} 
+    origin, err := inv.MultiplyTuple(NewPoint(0, 0, 0))
+	if err != nil {return nil, err} 
 
-	pixel, err := inv.MultiplyTuple(NewPoint(worldX, worldY, -1))
-	if err != nil {
-		return nil, err
-	}
-	origin, err := inv.MultiplyTuple(NewPoint(0, 0, 0))
-	if err != nil {
-		return nil, err
-	}
-
-	direction := pixel.Subtract(origin).Normalize()
-
-	return NewRay(origin, direction), nil
+    direction := pixel.Subtract(origin).Normalize()
+        
+    return NewRay(origin, direction), nil
 }
 
 func (c *Camera) Render(w *World) (*Canvas, error) {

@@ -15,12 +15,16 @@ func NewCylinder() *Shape {
 	})
 }
 
-func (c *Cylinder) Equal(other ShapeTrait) bool {
+func (c *Cylinder) Equal(other any) bool {
 	return reflect.TypeOf(c) == reflect.TypeOf(other)
 }
 
 func (c *Cylinder) String() string {
 	return "cylinder{}"
+}
+
+func (c *Cylinder) Includes (s, other *Shape) bool{
+	return s == other
 }
 
 func (cyl *Cylinder) Intersect(s* Shape, ray *Ray) *Intersections {

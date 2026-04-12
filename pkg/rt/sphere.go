@@ -20,12 +20,16 @@ func GlassSphere() *Shape {
 	return s
 }
 
-func (s *Sphere) Equal(other ShapeTrait) bool {
+func (s *Sphere) Equal(other any) bool {
 	return reflect.TypeOf(s) == reflect.TypeOf(other)
 }
 
 func (s *Sphere) String() string {
 	return "sphere{}"
+}
+
+func (_ *Sphere) Includes (s, other *Shape) bool{
+	return s == other
 }
 
 func (s *Sphere) Intersect(shape *Shape, ray *Ray) *Intersections {

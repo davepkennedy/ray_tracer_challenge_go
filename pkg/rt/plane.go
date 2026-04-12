@@ -12,12 +12,16 @@ func NewPlane() *Shape {
 	return NewShape(&PlaneTrait{})
 }
 
-func (p *PlaneTrait) Equal(other ShapeTrait) bool {
+func (p *PlaneTrait) Equal(other any) bool {
 	return reflect.TypeOf(p) == reflect.TypeOf(other)
 }
 
 func (p *PlaneTrait) String() string {
 	return "plane{}"
+}
+
+func (p *PlaneTrait) Includes (s, other *Shape) bool{
+	return s == other
 }
 
 func (p *PlaneTrait) Intersect(s *Shape, ray *Ray) *Intersections {

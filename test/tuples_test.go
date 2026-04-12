@@ -13,9 +13,6 @@ import (
 	"github.com/cucumber/godog"
 )
 
-type tupleKey struct{ Name string }
-type colorKey struct{ Name string }
-
 func parseFloat(s string) (float64, error) {
 	re1, err := regexp.Compile(`√(\-?\d+\.?\d*)/(\-?\d+\.?\d*)`)
 	if err != nil {
@@ -116,15 +113,17 @@ func colorFromString(s string) (*rt.Color, error) {
 func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
-		func(ctx context.Context, name string, x, y, z, w float64) (context.Context, error) {
+		func(ctx TestState, name string, x, y, z, w float64) (context.Context, error) {
 			t := rt.NewTuple(x, y, z, w)
-			return context.WithValue(ctx, tupleKey{Name: name}, t), nil
+			ctx = setTuple(ctx, name, t)
+			log.Printf("Current Context: %#v", ctx)
+			return ctx, nil
 		})
 	sc.Given(
 		`^(\w+) ← point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) (context.Context, error) {
 			p := rt.NewPoint(x, y, z)
-			return context.WithValue(ctx, tupleKey{Name: name}, p), nil
+			return setTuple(ctx, name, p), nil
 		})
 	sc.Given(
 		`^(\w+) ← vector\((\S+), (\S+), (\S+)\)$`,
@@ -133,7 +132,7 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 			if err != nil {
 				return ctx, err
 			}
-			return context.WithValue(ctx, tupleKey{Name: name}, v), nil
+			return setTuple(ctx, name, v), nil
 		})
 	sc.Given(
 		`^(\w+) ← color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
@@ -144,40 +143,44 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 		`^(\w+) ← color\((\-?\d+\.?\d*), result ← lighting(m, light, position, eyev, normalv), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, r, g, b float64) (context.Context, error) {
 			c := rt.NewColor(r, g, b)
-			return context.WithValue(ctx, colorKey{Name: name}, c), nil
+			return setColor(ctx, name, c), nil
 		})
 
 	sc.When(
 		`(\w) ← reflect\((\w), (\w)\)`,
 		func(ctx context.Context, dest, tupleName, normalName string) (context.Context, error) {
-			tuple, ok := ctx.Value(tupleKey{tupleName}).(*rt.Tuple)
-			if !ok {
-				return ctx, fmt.Errorf("no tuple named %s found", tupleName)
+			tuple, err := getTuple(ctx, tupleName)
+			if err != nil {
+				return ctx, err
 			}
-			normal, ok := ctx.Value(tupleKey{normalName}).(*rt.Tuple)
-			if !ok {
-				return ctx, fmt.Errorf("no tuple named %s found", normalName)
+
+			normal, err := getTuple(ctx, normalName)
+			if err != nil {
+				return ctx, err
 			}
+
 			r := tuple.Reflect(normal)
-			return context.WithValue(ctx, tupleKey{dest}, r), nil
+			return setTuple(ctx, dest, r), nil
 		})
 	sc.When(
 		`^(\w+) ← normalize\((\w+)\)$`,
 		func(ctx context.Context, name1, name2 string) (context.Context, error) {
-			tuple, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return ctx, fmt.Errorf("no tuple named %s found", name2)
+			tuple, err := getTuple(ctx, name2)
+			if err != nil {
+				return ctx, err
 			}
-			return context.WithValue(ctx, tupleKey{Name: name1}, tuple.Normalize()), nil
+
+			return setTuple(ctx, name1, tuple.Normalize()), nil
 		})
 
 	sc.Then(
 		`^(\w).x = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, x float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if tuple.X != x {
 				return fmt.Errorf("expected tuple.X = %f, got %f", x, tuple.X)
 			}
@@ -186,10 +189,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).y = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, y float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if tuple.Y != y {
 				return fmt.Errorf("expected tuple.X = %f, got %f", y, tuple.Y)
 			}
@@ -198,11 +202,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).z = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, z float64) error {
-
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if tuple.Z != z {
 				return fmt.Errorf("expected tuple.X = %f, got %f", z, tuple.Z)
 			}
@@ -211,10 +215,9 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).w = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, w float64) error {
-
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
 			if tuple.W != w {
 				return fmt.Errorf("expected tuple.X = %f, got %f", w, tuple.W)
@@ -225,10 +228,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).red = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, r float64) error {
-			color, ok := ctx.Value(colorKey{Name: name}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			color, err := getColor(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if color.Red != r {
 				return fmt.Errorf("expected tuple.X = %f, got %f", r, color.Red)
 			}
@@ -237,10 +241,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).green = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, g float64) error {
-			color, ok := ctx.Value(colorKey{Name: name}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			color, err := getColor(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if color.Green != g {
 				return fmt.Errorf("expected tuple.X = %f, got %f", g, color.Green)
 			}
@@ -249,10 +254,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w).blue = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, b float64) error {
-			color, ok := ctx.Value(colorKey{Name: name}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			color, err := getColor(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if color.Blue != b {
 				return fmt.Errorf("expected tuple.X = %f, got %f", b, color.Blue)
 			}
@@ -262,10 +268,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z, w float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewTuple(x, y, z, w)
 			if !tuple.Equal(expect) {
 				return fmt.Errorf("expected %s, got %s", expect, tuple)
@@ -275,10 +282,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^-(\w) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z, w float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			tuple = tuple.Negate()
 			expect := rt.NewTuple(x, y, z, w)
 			if !tuple.Equal(expect) {
@@ -289,10 +297,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) \* (\-?\d+\.?\d*) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, m, x, y, z, w float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			tuple = tuple.MultiplyScalar(m)
 			expect := rt.NewTuple(x, y, z, w)
 			if !tuple.Equal(expect) {
@@ -303,10 +312,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) / (\-?\d+\.?\d*) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, d, x, y, z, w float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			tuple = tuple.DivideScalar(d)
 			expect := rt.NewTuple(x, y, z, w)
 			if !tuple.Equal(expect) {
@@ -318,14 +328,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \+ (\w+) = tuple\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, x, y, z, w float64) error {
-			tuple1, ok := ctx.Value(tupleKey{Name: name1}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			tuple1, err := getTuple(ctx, name1)
+			if err != nil {
+				return err
 			}
-			tuple2, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			tuple2, err := getTuple(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			tuple := tuple1.Add(tuple2)
 			expect := rt.NewTuple(x, y, z, w)
 			if !tuple.Equal(expect) {
@@ -337,10 +349,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) is a point$`,
 		func(ctx context.Context, name string) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if !tuple.IsPoint() {
 				return fmt.Errorf("expected tuple %s to be a point", tuple)
 			}
@@ -349,10 +362,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) is a vector$`,
 		func(ctx context.Context, name string) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if !tuple.IsVector() {
 				return fmt.Errorf("expected tuple %s to be a vector", tuple)
 			}
@@ -361,10 +375,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) is not a point$`,
 		func(ctx context.Context, name string) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if tuple.IsPoint() {
 				return fmt.Errorf("expected tuple %s to not be a point", tuple)
 			}
@@ -373,10 +388,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w) is not a vector$`,
 		func(ctx context.Context, name string) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			if tuple.IsVector() {
 				return fmt.Errorf("expected tuple %s to not be a vector", tuple)
 			}
@@ -386,10 +402,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^magnitude\((\w+)\) = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, magnitude float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			m := tuple.Magnitude()
 			if m != magnitude {
 				return fmt.Errorf("expected tuple %s to have magnitude %f, was %f", tuple, magnitude, m)
@@ -400,10 +417,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^magnitude\((\w)\) = √(\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name string, magnitude float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			magnitude = math.Sqrt(magnitude)
 			m := tuple.Magnitude()
 			if m != magnitude {
@@ -415,14 +433,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) - (\w+) = vector\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, x, y, z float64) error {
-			tuple1, ok := ctx.Value(tupleKey{Name: name1}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			tuple1, err := getTuple(ctx, name1)
+			if err != nil {
+				return err
 			}
-			tuple2, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			tuple2, err := getTuple(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			tuple := tuple1.Subtract(tuple2)
 			expect := rt.NewVector(x, y, z)
 			if !tuple.Equal(expect) {
@@ -433,14 +453,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) - (\w+) = point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, x, y, z float64) error {
-			tuple1, ok := ctx.Value(tupleKey{Name: name1}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			tuple1, err := getTuple(ctx, name1)
+			if err != nil {
+				return err
 			}
-			tuple2, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			tuple2, err := getTuple(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			tuple := tuple1.Subtract(tuple2)
 			expect := rt.NewPoint(x, y, z)
 			if !tuple.Equal(expect) {
@@ -451,10 +473,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) = point\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewPoint(x, y, z)
 			if !tuple.Equal(expect) {
 				return fmt.Errorf("expected %s to equal %s", tuple, expect)
@@ -465,14 +488,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \+ (\w+) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, r, g, b float64) error {
-			color1, ok := ctx.Value(colorKey{Name: name1}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			color1, err := getColor(ctx, name1)
+			if err != nil {
+				return err
 			}
-			color2, ok := ctx.Value(colorKey{Name: name2}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+
+			color2, err := getColor(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewColor(r, g, b)
 			color := color1.Add(color2)
 			if !color.Equal(expect) {
@@ -483,14 +508,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) - (\w+) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, r, g, b float64) error {
-			color1, ok := ctx.Value(colorKey{Name: name1}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			color1, err := getColor(ctx, name1)
+			if err != nil {
+				return err
 			}
-			color2, ok := ctx.Value(colorKey{Name: name2}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+
+			color2, err := getColor(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewColor(r, g, b)
 			color := color1.Subtract(color2)
 			if !color.Equal(expect) {
@@ -501,10 +528,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \* (\d+) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1 string, m, r, g, b float64) error {
-			color, ok := ctx.Value(colorKey{Name: name1}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			color, err := getColor(ctx, name1)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewColor(r, g, b)
 			color = color.MultiplyScalar(m)
 			if !color.Equal(expect) {
@@ -515,14 +543,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) \* (\w\d+) = color\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, r, g, b float64) error {
-			color1, ok := ctx.Value(colorKey{Name: name1}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			color1, err := getColor(ctx, name1)
+			if err != nil {
+				return err
 			}
-			color2, ok := ctx.Value(colorKey{Name: name2}).(*rt.Color)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			color2, err := getColor(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			expect := rt.NewColor(r, g, b)
 			color := color1.Multiply(color2)
 			if !color.Equal(expect) {
@@ -548,10 +578,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^normalize\((\w+)\) = vector\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			tuple = tuple.Normalize()
 			expect := rt.NewVector(x, y, z)
 			if !tuple.Equal(expect) {
@@ -563,10 +594,11 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^normalize\((\w+)\) = approximately vector\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name string, x, y, z float64) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
+
 			tuple = tuple.Normalize()
 			expect := rt.NewVector(x, y, z)
 			if !tuple.Equal(expect) {
@@ -578,14 +610,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^cross\((\w+), (\w+)\) = vector\((\-?\d+\.?\d*), (\-?\d+\.?\d*), (\-?\d+\.?\d*)\)$`,
 		func(ctx context.Context, name1, name2 string, x, y, z float64) error {
-			tuple1, ok := ctx.Value(tupleKey{Name: name1}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			tuple1, err := getTuple(ctx, name1)
+			if err != nil {
+				return err
 			}
-			tuple2, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			tuple2, err := getTuple(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			tuple := tuple1.Cross(tuple2)
 			expect := rt.NewVector(x, y, z)
 			if !tuple.Equal(expect) {
@@ -596,14 +630,16 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^dot\((\w+), (\w+)\) = (\-?\d+\.?\d*)$`,
 		func(ctx context.Context, name1, name2 string, expect float64) error {
-			tuple1, ok := ctx.Value(tupleKey{Name: name1}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name1)
+			tuple1, err := getTuple(ctx, name1)
+			if err != nil {
+				return err
 			}
-			tuple2, ok := ctx.Value(tupleKey{Name: name2}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name2)
+
+			tuple2, err := getTuple(ctx, name2)
+			if err != nil {
+				return err
 			}
+
 			dot := tuple1.Dot(tuple2)
 			if dot != expect {
 				return fmt.Errorf("expected %f to equal %f", dot, expect)
@@ -614,9 +650,9 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) = vector\((\S+), (\S+), (\S+)\)$`,
 		func(ctx context.Context, name string, x, y, z string) error {
-			tuple, ok := ctx.Value(tupleKey{Name: name}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", name)
+			tuple, err := getTuple(ctx, name)
+			if err != nil {
+				return err
 			}
 			expect, err := vectorFromStrings(x, y, z)
 			if err != nil {
@@ -630,14 +666,15 @@ func InitializeTuplesScenario(sc *godog.ScenarioContext) {
 	sc.Then(
 		`^(\w+) = normalize\((\w+)\)$`,
 		func(ctx context.Context, expectName, sourceName string) error {
-			expect, ok := ctx.Value(tupleKey{Name: expectName}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", expectName)
+			expect, err := getTuple(ctx, expectName)
+			if err != nil {
+				return err
 			}
-			source, ok := ctx.Value(tupleKey{Name: sourceName}).(*rt.Tuple)
-			if !ok {
-				return fmt.Errorf("no tuple named %s found", sourceName)
+			source, err := getTuple(ctx, sourceName)
+			if err != nil {
+				return err
 			}
+
 			normalized := source.Normalize()
 			if !expect.Equal(normalized) {
 				return fmt.Errorf("expected %s, got %s", expect, normalized)

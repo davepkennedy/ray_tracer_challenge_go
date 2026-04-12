@@ -12,13 +12,13 @@ func InitializeSphereScenario(sc *godog.ScenarioContext) {
 	sc.Given(
 		`^(\w+) ← sphere\(\)$`,
 		func(ctx context.Context, name string) context.Context {
-			return context.WithValue(ctx, shapeKey{name}, rt.NewSphere())
+			return setShape(ctx, name, rt.NewSphere())
 		})
 
 	sc.Given(
 		`^(\w+) ← glass_sphere\(\)$`,
 		func(ctx context.Context, name string) context.Context {
-			return context.WithValue(ctx, shapeKey{name}, rt.GlassSphere())
+			return setShape(ctx, name, rt.GlassSphere())
 		})
 
 	sc.Given(
@@ -89,7 +89,7 @@ func InitializeSphereScenario(sc *godog.ScenarioContext) {
 			}
 
 			intersections := shape.Intersect(ray)
-			return context.WithValue(ctx, intersectionsKey{dest}, intersections), nil
+			return setIntersections(ctx, dest, intersections), nil
 		})
 	sc.When(
 		`^set_transform\((\w+), (\w+)\)$`,
@@ -148,7 +148,7 @@ func InitializeSphereScenario(sc *godog.ScenarioContext) {
 				return ctx, err
 			}
 
-			return context.WithValue(ctx, tupleKey{dest}, normal), nil
+			return setTuple(ctx, dest, normal), nil
 		})
 	sc.When(
 		`^(\w+) ← (\w+).material$`,
@@ -158,7 +158,7 @@ func InitializeSphereScenario(sc *godog.ScenarioContext) {
 				return ctx, err
 			}
 
-			return context.WithValue(ctx, materialKey{dest}, shape.Material), nil
+			return setMaterial(ctx, dest, shape.Material), nil
 		})
 	sc.When(
 		`^(\w+).material ← (\w+)$`,
