@@ -1,6 +1,7 @@
 package rt
 
 import (
+	"log"
 	"fmt"
 	"math"
 )
@@ -36,6 +37,7 @@ func Lighting(material *Material, shape *Shape, light *Light, pt, eye, normal *T
 		if err != nil {
 			return nil, err
 		}
+		log.Printf("Material pattern color at %s is %s", pt, color)
 	}
 
 	effective_color := color.Multiply(light.Intensity)

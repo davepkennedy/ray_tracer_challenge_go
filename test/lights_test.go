@@ -31,7 +31,8 @@ func setLighting(ctx context.Context, dest, materialName, lightName, positionNam
 		return ctx, err
 	}
 
-	color, err := rt.Lighting(material, nil, light, position, eye, normal, inShadow)
+	shape := NewTestShape()
+	color, err := rt.Lighting(material, shape, light, position, eye, normal, inShadow)
 	if err != nil {
 		return ctx, err
 	}
